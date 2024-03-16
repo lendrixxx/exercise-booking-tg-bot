@@ -410,9 +410,9 @@ def instructors_handler(message):
 
 def update_cached_result_data():
   global cached_result_data
-  cached_result_data = get_rev_schedule(locations=[studio_location.All], weeks=4, days='All', instructors=['All'])
-  cached_result_data += get_barrys_schedule(locations=[studio_location.All], weeks=3, days='All', instructors=['All'])
-  cached_result_data += get_absolute_schedule(locations=list(absolute.data.location_map), weeks=2, days='All', instructors=['All'])
+  cached_result_data = get_rev_schedule(locations=[studio_location.All], weeks=4, days=['All'], instructors=['All'])
+  cached_result_data += get_barrys_schedule(locations=[studio_location.All], weeks=3, days=['All'], instructors=['All'])
+  cached_result_data += get_absolute_schedule(locations=list(absolute.data.location_map), weeks=2, days=['All'], instructors=['All'])
 
 print('Starting bot...')
 update_cached_result_data()

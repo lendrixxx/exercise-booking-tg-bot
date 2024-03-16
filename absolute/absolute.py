@@ -1,7 +1,7 @@
 import calendar
 import requests
 from bs4 import BeautifulSoup
-from common.data_types import class_data, result_data, studio_location, studio_type
+from common.data_types import class_availability, class_data, response_availability_map, result_data, studio_location, studio_type
 from copy import copy
 from datetime import datetime, timedelta
 from absolute.data import pilates_instructorid_map, spin_instructorid_map, location_map
@@ -15,7 +15,7 @@ def send_get_schedule_request(location: studio_location, week: int, instructor: 
     return requests.get(url=url, params=params)
 
 
-def parse_get_schedule_response(response, week: int, days: str, location: studio_location) -> dict[datetime.date, list[class_data]]:
+def parse_get_schedule_response(response, week: int, days: list[str], location: studio_location) -> dict[datetime.date, list[class_data]]:
   soup = BeautifulSoup(response.text, 'html.parser')
   reserve_table_list = [table for table in soup.find_all('table') if table.get('id') == 'reserve']
   reserve_table_list_len = len(reserve_table_list)
@@ -41,39 +41,42 @@ def parse_get_schedule_response(response, week: int, days: str, location: studio
   current_date = datetime.now().date() + timedelta(weeks=week)
   result_dict = {}
   for reserve_table_data in reserve_table_datas:
-    if days != 'All' and days != calendar.day_name[current_date.weekday()]:
+    if 'All' not in days and calendar.day_name[current_date.weekday()] not in days:
       current_date = current_date + timedelta(days=1)
       continue
 
     result_dict[current_date] = []
-    class_details = class_data(studio=studio_type.AbsoluteSpin, location=location, name='', instructor='', time='')
-    for reserve_table_data_span in reserve_table_data.find_all('span'):
-      reserve_table_data_span_class_list = reserve_table_data_span.get('class')
-      if len(reserve_table_data_span_class_list) == 0:
-        print('[W] Failed to get schedule - Table data span class is null')
-        continue
+    reserve_table_data_div_list = reserve_table_data.find_all('div')
+    if len(reserve_table_data_div_list) == 0:
+      print('[W] Failed to get schedule - Table data div is null')
+      continue
 
-      reserve_table_data_span_class = reserve_table_data_span_class_list[0]
-      if reserve_table_data_span_class == 'scheduleClass':
-        class_details.name = str(reserve_table_data_span.contents[0].strip())
-      elif reserve_table_data_span_class == 'scheduleInstruc':
-        class_details.instructor = str(reserve_table_data_span.contents[0].strip())
-      elif reserve_table_data_span_class == 'scheduleTime':
-        if len(reserve_table_data_span_class_list) != 2:
+    for reserve_table_data_div in reserve_table_data_div_list:
+      reserve_table_data_div_class_list = reserve_table_data_div.get('class')
+      if len(reserve_table_data_div_class_list) < 2:
+        availability = class_availability.Null
+      else:
+        availability = response_availability_map[reserve_table_data_div_class_list[1]]
+
+      class_details = class_data(studio=studio_type.AbsoluteSpin, location=location, name='', instructor='', time='', availability=availability)
+      for reserve_table_data_div_span in reserve_table_data_div.find_all('span'):
+        reserve_table_data_div_span_class_list = reserve_table_data_div_span.get('class')
+        if len(reserve_table_data_div_span_class_list) == 0:
+          print('[W] Failed to get schedule - Table data span class is null')
           continue
 
-        if reserve_table_data_span_class_list[1] != 'active':
-          class_details = class_data(studio=studio_type.AbsoluteSpin, location=location, name='', instructor='', time='')
-          continue
+        reserve_table_data_div_span_class = reserve_table_data_div_span_class_list[0]
+        if reserve_table_data_div_span_class == 'scheduleClass':
+          class_details.name = str(reserve_table_data_div_span.contents[0].strip())
+        elif reserve_table_data_div_span_class == 'scheduleInstruc':
+          class_details.instructor = str(reserve_table_data_div_span.contents[0].strip())
+        elif reserve_table_data_div_span_class == 'scheduleTime':
+          if len(class_details.name) == 0:
+            continue
 
-        if len(class_details.name) == 0:
-          class_details = class_data(studio=studio_type.AbsoluteSpin, location=location, name='', instructor='', time='')
-          continue
-
-        class_details.set_time(str(reserve_table_data_span.contents[0].strip()))
-        class_details.studio = studio_type.AbsoluteSpin if 'CYCLE' in class_details.name else studio_type.AbsolutePilates
-        result_dict[current_date].append(copy(class_details))
-        class_details = class_data(studio=studio_type.AbsoluteSpin, location=location, name='', instructor='', time='')
+          class_details.set_time(str(reserve_table_data_div_span.contents[0].strip()))
+          class_details.studio = studio_type.AbsoluteSpin if 'CYCLE' in class_details.name else studio_type.AbsolutePilates
+          result_dict[current_date].append(copy(class_details))
 
     if len(result_dict[current_date]) == 0:
       result_dict.pop(current_date)
@@ -81,7 +84,7 @@ def parse_get_schedule_response(response, week: int, days: str, location: studio
 
   return result_dict
 
-def get_absolute_schedule(locations: list[studio_location], weeks: int, days: str, instructors: list[str]) -> result_data:
+def get_absolute_schedule(locations: list[studio_location], weeks: int, days: list[str], instructors: list[str]) -> result_data:
   result = result_data()
   # REST API does not return location info in class name
   i = 0

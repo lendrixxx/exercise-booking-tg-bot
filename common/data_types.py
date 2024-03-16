@@ -1,4 +1,5 @@
 import calendar
+import pytz
 from copy import copy
 from datetime import datetime, timedelta
 from enum import Enum
@@ -25,6 +26,12 @@ class studio_location(str, Enum):
   GreatWorld = 'Great World'
   Null = 'Null'
 
+class class_availability(str, Enum):
+  Available = 'Available'
+  Waitlist = 'Waitlist'
+  Full = 'Full'
+  Null = 'Null'
+
 studio_locations_map = {
   studio_type.Rev: [studio_location.Orchard, studio_location.TJPG, studio_location.Bugis, studio_location.Suntec],
   studio_type.Barrys: [studio_location.Orchard, studio_location.Raffles],
@@ -32,15 +39,22 @@ studio_locations_map = {
   studio_type.AbsolutePilates: [studio_location.Centrepoint, studio_location.GreatWorld, studio_location.i12, studio_location.Raffles, studio_location.StarVista],
 }
 
+response_availability_map = {
+  'bookable' : class_availability.Available,
+  'classfull' : class_availability.Waitlist,
+  'waitlistfull' : class_availability.Full,
+}
+
 sorted_days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
 class class_data:
-  def __init__(self, studio:studio_type, location:studio_location, name:str, instructor:str, time:str):
+  def __init__(self, studio:studio_type, location:studio_location, name:str, instructor:str, time:str, availability:class_availability):
     self.studio = studio
     self.location = location
     self.name = name
     self.instructor = instructor
     self.time = time
+    self.availability = availability
 
   def set_time(self, time:str):
     last_pos = time.find('M') + 1
@@ -146,15 +160,16 @@ class result_data:
       return result_data()
 
     classes = {}
+    current_sg_time = datetime.now(pytz.timezone('Asia/Singapore'))
     for week in range(0, query.weeks):
-      current_date = datetime.now().date() + timedelta(weeks=week)
+      date_to_check = datetime.now().date() + timedelta(weeks=week)
       for day in range(7):
-        if calendar.day_name[current_date.weekday()] not in query.days:
-          current_date = current_date + timedelta(days=1)
+        if calendar.day_name[date_to_check.weekday()] not in query.days:
+          date_to_check = date_to_check + timedelta(days=1)
           continue
 
-        if current_date in self.classes:
-          for class_details in self.classes[current_date]:
+        if date_to_check in self.classes:
+          for class_details in self.classes[date_to_check]:
             if class_details.studio not in query.studios:
               continue
 
@@ -165,9 +180,16 @@ class result_data:
             is_by_instructor = 'All' in query.studios[class_details.studio].instructors \
               or any(instructor.lower() == class_details.instructor.lower() for instructor in query.studios[class_details.studio].instructors) \
               or any(instructor.lower() in class_details.instructor.lower().split(' ') for instructor in query.studios[class_details.studio].instructors)
-            if is_by_instructor:
-              classes.setdefault(current_date, []).append(class_details)
-        current_date = current_date + timedelta(days=1)
+            if not is_by_instructor:
+              continue
+
+            if week == 0 and day == 0: # Skip classes that have already ended
+              class_time = datetime.strptime(class_details.time,'%I:%M %p')
+              if current_sg_time.hour > class_time.hour or current_sg_time.hour == class_time.hour and current_sg_time.minute > class_time.minute:
+                continue
+
+            classes.setdefault(date_to_check, []).append(class_details)
+        date_to_check = date_to_check + timedelta(days=1)
 
     result = result_data(classes)
     return result
@@ -182,7 +204,13 @@ class result_data:
       result_str += f'{date_str}\n'
 
       for class_details in sorted(self.classes[date]):
-        result_str += f'*{class_details.time}* - {class_details.name} @ {class_details.location} ({class_details.instructor})\n'
+        availability_str = ''
+        if class_details.availability == class_availability.Waitlist:
+          availability_str = '[W] '
+        elif class_details.availability == class_availability.Full:
+          availability_str = '[F] '
+
+        result_str += f'*{availability_str + class_details.time}* - {class_details.name} @ {class_details.location} ({class_details.instructor})\n'
       result_str += '\n'
 
     return result_str
