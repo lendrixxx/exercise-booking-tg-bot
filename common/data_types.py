@@ -182,7 +182,7 @@ class result_data:
       result_str += f'{date_str}\n'
 
       for class_details in sorted(self.classes[date]):
-        result_str += f'{class_details.time} - {class_details.name} @ {class_details.location} ({class_details.instructor})\n'
+        result_str += f'*{class_details.time}* - {class_details.name} @ {class_details.location} ({class_details.instructor})\n'
       result_str += '\n'
 
     return result_str
