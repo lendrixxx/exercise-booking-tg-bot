@@ -21,5 +21,10 @@ location_map = {
   studio_location.Orchard: 12,
 }
 
+response_location_to_studio_location_map = {
+  'Orchard' : studio_location.Orchard,
+  'Raffles Place' : studio_location.Raffles,
+}
+
 instructor_names = list(instructorid_map)
 locations = list(location_map)

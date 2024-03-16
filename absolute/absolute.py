@@ -46,7 +46,7 @@ def parse_get_schedule_response(response, week: int, days: str, location: studio
       continue
 
     result_dict[current_date] = []
-    class_details = class_data(studio=studio_type.AbsoluteSpin, name='', instructor='', time='')
+    class_details = class_data(studio=studio_type.AbsoluteSpin, location=location, name='', instructor='', time='')
     for reserve_table_data_span in reserve_table_data.find_all('span'):
       reserve_table_data_span_class_list = reserve_table_data_span.get('class')
       if len(reserve_table_data_span_class_list) == 0:
@@ -63,18 +63,17 @@ def parse_get_schedule_response(response, week: int, days: str, location: studio
           continue
 
         if reserve_table_data_span_class_list[1] != 'active':
-          class_details = class_data(studio=studio_type.Rev, name='', instructor='', time='')
+          class_details = class_data(studio=studio_type.AbsoluteSpin, location=location, name='', instructor='', time='')
           continue
 
         if len(class_details.name) == 0:
-          class_details = class_data(studio=studio_type.Rev, name='', instructor='', time='')
+          class_details = class_data(studio=studio_type.AbsoluteSpin, location=location, name='', instructor='', time='')
           continue
 
         class_details.set_time(str(reserve_table_data_span.contents[0].strip()))
         class_details.studio = studio_type.AbsoluteSpin if 'CYCLE' in class_details.name else studio_type.AbsolutePilates
-        class_details.name += ' @ ' + location.upper()
         result_dict[current_date].append(copy(class_details))
-        class_details = class_data(studio=studio_type.Rev, name='', instructor='', time='')
+        class_details = class_data(studio=studio_type.AbsoluteSpin, location=location, name='', instructor='', time='')
 
     if len(result_dict[current_date]) == 0:
       result_dict.pop(current_date)

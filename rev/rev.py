@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 from common.data_types import class_data, result_data, studio_location, studio_type
 from copy import copy
 from datetime import datetime, timedelta
-from rev.data import instructorid_map, location_map
+from rev.data import instructorid_map, location_map, response_location_to_studio_location_map
 
 def send_get_schedule_request(locations: list[studio_location], week: int, instructor: str):
     url = 'https://rhythmstudios.zingfit.com/reserve/index.cfm?action=Reserve.chooseClass'
@@ -60,7 +60,7 @@ def parse_get_schedule_response(response, week: int, days: str) -> dict[datetime
       continue
 
     result_dict[current_date] = []
-    class_details = class_data(studio=studio_type.Rev, name='', instructor='', time='')
+    class_details = class_data(studio=studio_type.Rev, location=studio_location.Null, name='', instructor='', time='')
     for reserve_table_data_span in reserve_table_data.find_all('span'):
       reserve_table_data_span_class_list = reserve_table_data_span.get('class')
       if len(reserve_table_data_span_class_list) == 0:
@@ -69,13 +69,22 @@ def parse_get_schedule_response(response, week: int, days: str) -> dict[datetime
 
       reserve_table_data_span_class = reserve_table_data_span_class_list[0]
       if reserve_table_data_span_class == 'scheduleClass':
-        class_details.name = str(reserve_table_data_span.contents[0].strip())
+        schedule_class_str = str(reserve_table_data_span.contents[0].strip())
+        name_location_split_pos = schedule_class_str.find(' @ ')
+        class_name = schedule_class_str[:name_location_split_pos]
+        class_details.name = class_name
+        class_location_str = schedule_class_str[name_location_split_pos + 3:]
+        if class_location_str in response_location_to_studio_location_map:
+          class_details.location = response_location_to_studio_location_map[class_location_str]
+        else:
+          class_location_list = [value for key, value in response_location_to_studio_location_map.items() if key in class_location_str]
+          class_details.location = class_location_list[0]
       elif reserve_table_data_span_class == 'scheduleInstruc':
         class_details.instructor = str(reserve_table_data_span.contents[0].strip())
       elif reserve_table_data_span_class == 'scheduleTime':
         class_details.set_time(str(reserve_table_data_span.contents[0].strip()))
         result_dict[current_date].append(copy(class_details))
-        class_details = class_data(studio=studio_type.Rev, name='', instructor='', time='')
+        class_details = class_data(studio=studio_type.Rev, location=studio_location.Null, name='', instructor='', time='')
 
     if len(result_dict[current_date]) == 0:
       result_dict.pop(current_date)

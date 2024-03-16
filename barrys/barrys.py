@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 from common.data_types import class_data, result_data, studio_location, studio_type
 from copy import copy
 from datetime import datetime, timedelta
-from barrys.data import instructorid_map, location_map
+from barrys.data import instructorid_map, location_map, response_location_to_studio_location_map
 
 def send_get_schedule_request(locations: list[studio_location], week: int, instructor: str):
     url = 'https://apac.barrysbootcamp.com.au/reserve/index.cfm?action=Reserve.chooseClass'
@@ -48,7 +48,7 @@ def parse_get_schedule_response(response, week: int, days: str) -> dict[datetime
       continue
 
     for schedule_block_div in schedule_block_div_list:
-      class_details = class_data(studio=studio_type.Barrys, name='', instructor='', time='')
+      class_details = class_data(studio=studio_type.Barrys, location=studio_location.Null, name='', instructor='', time='')
       for schedule_block_div_span in schedule_block_div.find_all('span'):
         schedule_block_div_span_class = schedule_block_div_span.get('class')
         if schedule_block_div_span_class is None:
@@ -57,14 +57,15 @@ def parse_get_schedule_response(response, week: int, days: str) -> dict[datetime
         if 'scheduleTime' in schedule_block_div_span_class:
           class_details.set_time(str(schedule_block_div_span.contents[0].get_text()))
         if 'scheduleSite' in schedule_block_div_span_class:
-          class_details.name = f' @ {str(schedule_block_div_span.contents[0].get_text())}'
+          location_str = str(schedule_block_div_span.contents[0].get_text())
+          class_details.location = response_location_to_studio_location_map[location_str]
         elif 'scheduleClass' in schedule_block_div_span_class:
           class_details.name = str(schedule_block_div_span.contents[0].get_text()) + class_details.name
         elif 'scheduleInstruc' in schedule_block_div_span_class:
           class_details.instructor = str(schedule_block_div_span.contents[0].get_text())
           if class_details not in result_dict[current_date]:
             result_dict[current_date].append(copy(class_details))
-          class_details = class_data(studio=studio_type.Barrys, name='', instructor='', time='')
+          class_details = class_data(studio=studio_type.Barrys, location=studio_location.Null, name='', instructor='', time='')
 
     if len(result_dict[current_date]) == 0:
       result_dict.pop(current_date)

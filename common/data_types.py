@@ -35,8 +35,9 @@ studio_locations_map = {
 sorted_days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
 class class_data:
-  def __init__(self, studio:studio_type, name:str, instructor:str, time:str):
+  def __init__(self, studio:studio_type, location:studio_location, name:str, instructor:str, time:str):
     self.studio = studio
+    self.location = location
     self.name = name
     self.instructor = instructor
     self.time = time
@@ -46,7 +47,7 @@ class class_data:
     self.time = time[:last_pos]
 
   def __eq__(self, other: 'class_data') -> bool:
-    return self.studio == other.studio and self.name == other.name and self.instructor == other.instructor and self.time == other.time
+    return self.studio == other.studio and self.location == other.location and self.name == other.name and self.instructor == other.instructor and self.time == other.time
 
   def __lt__(self, other: 'class_data') -> bool:
     self_time = datetime.strptime(self.time,'%I:%M %p')
@@ -158,10 +159,7 @@ class result_data:
               continue
 
             query_locations = query.get_studio_locations(class_details.studio)
-            is_at_location = 'All' in query_locations \
-              or any(query_location.lower() in class_details.name.lower() for query_location in query_locations)
-
-            if not is_at_location:
+            if class_details.location not in query_locations:
               continue
 
             is_by_instructor = 'All' in query.studios[class_details.studio].instructors \
@@ -184,7 +182,7 @@ class result_data:
       result_str += f'{date_str}\n'
 
       for class_details in sorted(self.classes[date]):
-        result_str += f'{class_details.time} - {class_details.name} ({class_details.instructor})\n'
+        result_str += f'{class_details.time} - {class_details.name} @ {class_details.location} ({class_details.instructor})\n'
       result_str += '\n'
 
     return result_str

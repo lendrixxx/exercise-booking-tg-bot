@@ -52,5 +52,12 @@ location_map = {
   studio_location.Suntec: 5,
 }
 
+response_location_to_studio_location_map = {
+  'BUGIS' : studio_location.Bugis,
+  'ORCHARD' : studio_location.Orchard,
+  'SUNTEC' : studio_location.Suntec,
+  'TANJONG PAGAR' : studio_location.TJPG,
+}
+
 instructor_names = list(instructorid_map)
 locations = list(location_map)
