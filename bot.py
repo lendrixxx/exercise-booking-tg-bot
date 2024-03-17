@@ -22,19 +22,21 @@ cached_result_data = result_data()
 def studios_callback_query_handler(query):
   global current_query_data
   query_data_dict = eval(query.data)
-  current_query_data.current_studio = query_data_dict['studios']
-  locations_handler(query.message)
-
-@bot.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'studios-all')
-def studios_callback_query_handler(query):
-  global current_query_data
-  current_query_data.studios = {
-    'Rev': studio_data(locations=studio_locations_map[studio_type.Rev]),
-    'Barrys': studio_data(locations=studio_locations_map[studio_type.Barrys]),
-    'Absolute (Spin)': studio_data(locations=studio_locations_map[studio_type.AbsoluteSpin]),
-    'Absolute (Pilates)': studio_data(locations=studio_locations_map[studio_type.AbsolutePilates]),
-  }
-  weeks_handler(query.message)
+  studios_selected = query_data_dict['studios']
+  if studios_selected == 'All':
+    current_query_data.studios = {
+      'Rev': studio_data(locations=studio_locations_map[studio_type.Rev]),
+      'Barrys': studio_data(locations=studio_locations_map[studio_type.Barrys]),
+      'Absolute (Spin)': studio_data(locations=studio_locations_map[studio_type.AbsoluteSpin]),
+      'Absolute (Pilates)': studio_data(locations=studio_locations_map[studio_type.AbsolutePilates]),
+    }
+    start_handler(query.message)
+  elif studios_selected == 'None':
+    current_query_data.studios = {}
+    start_handler(query.message)
+  else:
+    current_query_data.current_studio = studios_selected
+    locations_handler(query.message)
 
 @bot.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'locations')
 def locations_callback_query_handler(query):
@@ -205,9 +207,11 @@ def instructors_next_callback_query_handler(query):
   if len(schedule_str) > 4095:
     shortened_message = ''
     for line in schedule_str.split('\n'):
-      if len(shortened_message) + len(line) > 4095:
+      is_new_day = any(day in line for day in sorted_days) and len(shortened_message) > 0
+      max_len_reached = len(shortened_message) + len(line) > 4095
+      if is_new_day or max_len_reached:
         bot.send_message(query.message.chat.id, shortened_message, parse_mode='Markdown')
-        shortened_message = line
+        shortened_message = line + '\n'
       else:
         shortened_message += line + '\n'
 
@@ -231,13 +235,15 @@ def start_handler(message):
   barrys_button = telebot.types.InlineKeyboardButton('Barrys', callback_data='{"studios": "Barrys", "step": "studios"}')
   absolute_spin_button = telebot.types.InlineKeyboardButton('Absolute (Spin)', callback_data='{"studios": "Absolute (Spin)", "step": "studios"}')
   absolute_pilates_button = telebot.types.InlineKeyboardButton('Absolute (Pilates)', callback_data='{"studios": "Absolute (Pilates)", "step": "studios"}')
-  all_button = telebot.types.InlineKeyboardButton('All', callback_data='{"studios": "All", "step": "studios-all"}')
+  select_all_button = telebot.types.InlineKeyboardButton('Select All', callback_data='{"studios": "All", "step": "studios"}')
+  unselect_all_button = telebot.types.InlineKeyboardButton('Unselect All', callback_data='{"studios": "None", "step": "studios"}')
   next_button = telebot.types.InlineKeyboardButton('Next ▶️', callback_data='{"step": "studios-next"}')
 
   keyboard = telebot.types.InlineKeyboardMarkup()
   keyboard.add(rev_button, barrys_button)
   keyboard.add(absolute_spin_button, absolute_pilates_button)
-  keyboard.add(all_button, next_button)
+  keyboard.add(select_all_button, unselect_all_button)
+  keyboard.add(next_button)
   sent_msg = bot.send_message(message.chat.id, text, reply_markup=keyboard, parse_mode='Markdown')
 
 @bot.message_handler(commands=['refresh'])
