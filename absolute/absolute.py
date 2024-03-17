@@ -38,11 +38,12 @@ def parse_get_schedule_response(response, week: int, days: list[str], location: 
     print('[W] Failed to get schedule - Table data is null')
     return {}
 
-  current_date = datetime.now().date() + timedelta(weeks=week)
+  # Get yesterday's date and update date at the start of each loop
+  current_date = datetime.now().date() + timedelta(weeks=week) - timedelta(days=1)
   result_dict = {}
   for reserve_table_data in reserve_table_datas:
+    current_date = current_date + timedelta(days=1)
     if 'All' not in days and calendar.day_name[current_date.weekday()] not in days:
-      current_date = current_date + timedelta(days=1)
       continue
 
     result_dict[current_date] = []
@@ -80,7 +81,6 @@ def parse_get_schedule_response(response, week: int, days: list[str], location: 
 
     if len(result_dict[current_date]) == 0:
       result_dict.pop(current_date)
-    current_date = current_date + timedelta(days=1)
 
   return result_dict
 

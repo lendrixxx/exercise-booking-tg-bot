@@ -28,15 +28,18 @@ def send_get_schedule_request(locations: list[studio_location], week: int, instr
 
 def parse_get_schedule_response(response, week: int, days: list[str], locations: list[studio_location]) -> dict[datetime.date, list[class_data]]:
   soup = BeautifulSoup(response.text, 'html.parser')
-  result_dict = {}
-  current_date = datetime.now().date() + timedelta(weeks=week)
+
   if len(locations) == 1 and studio_location.All not in locations:
     location = locations[0]
   else:
     location = studio_location.Null
+
+  result_dict = {}
+  # Get yesterday's date and update date at the start of each loop
+  current_date = datetime.now().date() + timedelta(weeks=week) - timedelta(days=1)
   for _ in range(7):
+    current_date = current_date + timedelta(days=1)
     if 'All' not in days and calendar.day_name[current_date.weekday()] not in days:
-      current_date = current_date + timedelta(days=1)
       continue
 
     div_id = f'day{current_date.strftime("%Y%m%d")}'
@@ -78,7 +81,6 @@ def parse_get_schedule_response(response, week: int, days: list[str], locations:
 
     if len(result_dict[current_date]) == 0:
       result_dict.pop(current_date)
-    current_date = current_date + timedelta(days=1)
 
   return result_dict
 
