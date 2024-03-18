@@ -59,7 +59,10 @@ def parse_get_schedule_response(response, week: int, days: list[str], locations:
       if len(schedule_block_div_class_list) < 2:
         availability = class_availability.Null
       else:
-        availability = response_availability_map[schedule_block_div_class_list[1]]
+        availability_str = schedule_block_div_class_list[1]
+        if availability_str == 'empty': # No classes available for the day
+          continue
+        availability = response_availability_map[availability_str]
 
       class_details = class_data(studio=studio_type.Barrys, location=location, name='', instructor='', time='', availability=availability)
       for schedule_block_div_span in schedule_block_div.find_all('span'):
