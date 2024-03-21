@@ -4,11 +4,13 @@ import os
 import rev
 import telebot
 from absolute.absolute import get_absolute_schedule
+from common.bot_utils import get_default_studios_locations_buttons_map
 from common.data_types import query_data, result_data, sorted_days, studio_data, studio_location, studio_locations_map, studio_type
 from copy import copy
 from barrys.barrys import get_barrys_schedule
 from rev.rev import get_rev_schedule
 
+# Global variables
 BOT_TOKEN = os.environ.get('BOT_TOKEN')
 bot = telebot.TeleBot(BOT_TOKEN)
 start_command = telebot.types.BotCommand(command='start', description='Check schedules')
@@ -17,6 +19,36 @@ bot.set_my_commands([start_command, refresh_command])
 
 current_query_data = query_data(studios={}, current_studio=studio_type.Null, weeks=0, days=[])
 cached_result_data = result_data()
+
+# Locations buttons
+locations_selection_message = None
+locations_keyboard = telebot.types.InlineKeyboardMarkup()
+locations_select_all_button = telebot.types.InlineKeyboardButton('Select All', callback_data='{"locations": "All", "step": "locations"}')
+locations_unselect_all_button = telebot.types.InlineKeyboardButton('Unselect All', callback_data='{"locations": "Null", "step": "locations"}')
+locations_back_button = telebot.types.InlineKeyboardButton('◀️ Back', callback_data='{"step": "locations-back"}')
+
+# Locations buttons map
+studios_locations_buttons_map = get_default_studios_locations_buttons_map()
+
+def get_locations_keyboard() -> telebot.types.InlineKeyboardMarkup:
+  global current_query_data
+  locations_keyboard = telebot.types.InlineKeyboardMarkup()
+  if current_query_data.current_studio == 'Rev':
+    locations_keyboard.add(studios_locations_buttons_map['Rev']['Bugis'], studios_locations_buttons_map['Rev']['Orchard'])
+    locations_keyboard.add(studios_locations_buttons_map['Rev']['Suntec'], studios_locations_buttons_map['Rev']['TJPG'])
+  elif current_query_data.current_studio == 'Barrys':
+    locations_keyboard.add(studios_locations_buttons_map['Barrys']['Orchard'], studios_locations_buttons_map['Barrys']['Raffles'])
+  elif current_query_data.current_studio == 'Absolute (Spin)':
+    locations_keyboard.add(studios_locations_buttons_map['Absolute (Spin)']['Centrepoint'], studios_locations_buttons_map['Absolute (Spin)']['i12'])
+    locations_keyboard.add(studios_locations_buttons_map['Absolute (Spin)']['Star Vista'], studios_locations_buttons_map['Absolute (Spin)']['Raffles'])
+    locations_keyboard.add(studios_locations_buttons_map['Absolute (Spin)']['Millenia Walk'])
+  elif current_query_data.current_studio == 'Absolute (Pilates)':
+    locations_keyboard.add(studios_locations_buttons_map['Absolute (Pilates)']['Centrepoint'], studios_locations_buttons_map['Absolute (Pilates)']['i12'])
+    locations_keyboard.add(studios_locations_buttons_map['Absolute (Pilates)']['Star Vista'], studios_locations_buttons_map['Absolute (Pilates)']['Raffles'])
+    locations_keyboard.add(studios_locations_buttons_map['Absolute (Pilates)']['Great World'])
+  locations_keyboard.add(locations_select_all_button, locations_unselect_all_button)
+  locations_keyboard.add(locations_back_button)
+  return locations_keyboard
 
 @bot.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'studios')
 def studios_callback_query_handler(query):
@@ -40,12 +72,16 @@ def studios_callback_query_handler(query):
 
 @bot.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'locations')
 def locations_callback_query_handler(query):
-  global current_query_data
+  global current_query_data, studios_locations_buttons_map
   query_data_dict = eval(query.data)
   studio_location_selected = studio_location[query_data_dict['locations']]
   if studio_location_selected == studio_location.Null:
+    for location in studios_locations_buttons_map[current_query_data.current_studio]:
+      studios_locations_buttons_map[current_query_data.current_studio][location] = telebot.types.InlineKeyboardButton(location, callback_data=studios_locations_buttons_map[current_query_data.current_studio][location].callback_data)
     current_query_data.studios.pop(current_query_data.current_studio)
   elif studio_location_selected == studio_location.All:
+    for location in studios_locations_buttons_map[current_query_data.current_studio]:
+      studios_locations_buttons_map[current_query_data.current_studio][location] = telebot.types.InlineKeyboardButton(location + ' ✅', callback_data=studios_locations_buttons_map[current_query_data.current_studio][location].callback_data)
     if current_query_data.current_studio not in current_query_data.studios:
       new_studio = {current_query_data.current_studio: studio_data(locations=copy(studio_locations_map[current_query_data.current_studio]))}
       current_query_data.studios = {**current_query_data.studios, **new_studio}
@@ -53,18 +89,38 @@ def locations_callback_query_handler(query):
       current_query_data.studios[current_query_data.current_studio].locations = copy(studio_locations_map[current_query_data.current_studio])
   else:
     if current_query_data.current_studio not in current_query_data.studios:
+      studios_locations_buttons_map[current_query_data.current_studio][studio_location_selected] = \
+        telebot.types.InlineKeyboardButton(
+          studio_location_selected + ' ✅',
+          callback_data=studios_locations_buttons_map[current_query_data.current_studio][studio_location_selected].callback_data)
       new_studio = {current_query_data.current_studio: studio_data(locations=[studio_location_selected])}
       current_query_data.studios = {**current_query_data.studios, **new_studio}
     elif studio_location_selected in current_query_data.studios[current_query_data.current_studio].locations:
+      studios_locations_buttons_map[current_query_data.current_studio][studio_location_selected] = \
+        telebot.types.InlineKeyboardButton(
+          studio_location_selected,
+          callback_data=studios_locations_buttons_map[current_query_data.current_studio][studio_location_selected].callback_data)
       current_query_data.studios[current_query_data.current_studio].locations.remove(studio_location_selected)
       if len(current_query_data.studios[current_query_data.current_studio].locations) == 0:
         current_query_data.studios.pop(current_query_data.current_studio)
     else:
+      studios_locations_buttons_map[current_query_data.current_studio][studio_location_selected] = telebot.types.InlineKeyboardButton(studio_location_selected + ' ✅', callback_data=studios_locations_buttons_map[current_query_data.current_studio][studio_location_selected].callback_data)
       current_query_data.studios[current_query_data.current_studio].locations.append(studio_location_selected)
-  locations_handler(query.message)
 
-@bot.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'locations-next')
-def locations_next_callback_query_handler(query):
+  text = '*Schedule to check*\n'
+  text += f'Studio(s):\n{current_query_data.get_selected_studios_str()}\n'
+  text += '\n*Select the location(s) to check*'
+
+  global locations_selection_message
+  bot.edit_message_text(
+    chat_id=locations_selection_message.chat.id,
+    message_id=locations_selection_message.id,
+    text=text,
+    reply_markup=get_locations_keyboard(),
+    parse_mode='Markdown')
+
+@bot.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'locations-back')
+def locations_back_callback_query_handler(query):
   studios_handler(query.message)
 
 @bot.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'studios-next')
@@ -226,8 +282,9 @@ def instructors_back_callback_query_handler(query):
 
 @bot.message_handler(commands=['start'])
 def start_handler(message):
-  global current_query_data
+  global current_query_data, studios_locations_buttons_map
   current_query_data = query_data(studios={}, current_studio=studio_type.Null, weeks=0, days=[])
+  studios_locations_buttons_map = get_default_studios_locations_buttons_map()
   studios_handler(message)
 
 def studios_handler(message):
@@ -266,73 +323,8 @@ def locations_handler(message):
   text += f'Studio(s):\n{current_query_data.get_selected_studios_str()}\n'
   text += '\n*Select the location(s) to check*'
 
-  # Rev locations
-  selected_rev_locations = current_query_data.get_studio_locations('Rev')
-  rev_bugis_text = 'Bugis ✅' if 'Bugis' in selected_rev_locations else 'Bugis'
-  rev_orchard_text = 'Orchard ✅' if 'Orchard' in selected_rev_locations else 'Orchard'
-  rev_suntec_text = 'Suntec ✅' if 'Suntec' in selected_rev_locations else 'Suntec'
-  rev_tjpg_text = 'TJPG ✅' if 'TJPG' in selected_rev_locations else 'TJPG'
-  rev_bugis_button = telebot.types.InlineKeyboardButton(rev_bugis_text, callback_data='{"locations": "Bugis", "step": "locations"}')
-  rev_orchard_button = telebot.types.InlineKeyboardButton(rev_orchard_text, callback_data='{"locations": "Orchard", "step": "locations"}')
-  rev_suntec_button = telebot.types.InlineKeyboardButton(rev_suntec_text, callback_data='{"locations": "Suntec", "step": "locations"}')
-  rev_tjpg_button = telebot.types.InlineKeyboardButton(rev_tjpg_text, callback_data='{"locations": "TJPG", "step": "locations"}')
-
-  # Barrys locations
-  selected_barrys_locations = current_query_data.get_studio_locations('Barrys')
-  barrys_orchard_text = 'Orchard ✅' if 'Orchard' in selected_barrys_locations else 'Orchard'
-  barrys_raffles_place_text = 'Raffles ✅' if 'Raffles' in selected_barrys_locations else 'Raffles'
-  barrys_orchard_button = telebot.types.InlineKeyboardButton(barrys_orchard_text, callback_data='{"locations": "Orchard", "step": "locations"}')
-  barrys_raffles_button = telebot.types.InlineKeyboardButton(barrys_raffles_place_text, callback_data='{"locations": "Raffles", "step": "locations"}')
-
-  # Absolute spin locations
-  selected_absolute_spin_locations = current_query_data.get_studio_locations('Absolute (Spin)')
-  absolute_spin_centrepoint_text = 'Centrepoint ✅' if 'Centrepoint' in selected_absolute_spin_locations else 'Centrepoint'
-  absolute_spin_i12_text = 'i12 ✅' if 'i12' in selected_absolute_spin_locations else 'i12'
-  absolute_spin_star_vista_text = 'Star Vista ✅' if 'Star Vista' in selected_absolute_spin_locations else 'Star Vista'
-  absolute_spin_raffles_text = 'Raffles ✅' if 'Raffles' in selected_absolute_spin_locations else 'Raffles'
-  absolute_spin_millenia_walk_text = 'Millenia Walk ✅' if 'Millenia Walk' in selected_absolute_spin_locations else 'Millenia Walk'
-  absolute_spin_centrepoint_button = telebot.types.InlineKeyboardButton(absolute_spin_centrepoint_text, callback_data='{"locations": "Centrepoint", "step": "locations"}')
-  absolute_spin_i12_button = telebot.types.InlineKeyboardButton(absolute_spin_i12_text, callback_data='{"locations": "i12", "step": "locations"}')
-  absolute_spin_star_vista_button = telebot.types.InlineKeyboardButton(absolute_spin_star_vista_text, callback_data='{"locations": "StarVista", "step": "locations"}')
-  absolute_spin_raffles_button = telebot.types.InlineKeyboardButton(absolute_spin_raffles_text, callback_data='{"locations": "Raffles", "step": "locations"}')
-  absolute_spin_millenia_walk_button = telebot.types.InlineKeyboardButton(absolute_spin_millenia_walk_text, callback_data='{"locations": "MilleniaWalk", "step": "locations"}')
-
-  # Absolute pilates locations
-  selected_absolute_pilates_locations = current_query_data.get_studio_locations('Absolute (Pilates)')
-  absolute_pilates_centrepoint_text = 'Centrepoint ✅' if 'Centrepoint' in selected_absolute_pilates_locations else 'Centrepoint'
-  absolute_pilates_i12_text = 'i12 ✅' if 'i12' in selected_absolute_pilates_locations else 'i12'
-  absolute_pilates_star_vista_text = 'Star Vista ✅' if 'Star Vista' in selected_absolute_pilates_locations else 'Star Vista'
-  absolute_pilates_raffles_text = 'Raffles ✅' if 'Raffles' in selected_absolute_pilates_locations else 'Raffles'
-  absolute_pilates_great_world_text = 'Great World ✅' if 'Great World' in selected_absolute_pilates_locations else 'Great World'
-  absolute_pilates_centrepoint_button = telebot.types.InlineKeyboardButton(absolute_pilates_centrepoint_text, callback_data='{"locations": "Centrepoint", "step": "locations"}')
-  absolute_pilates_i12_button = telebot.types.InlineKeyboardButton(absolute_pilates_i12_text, callback_data='{"locations": "i12", "step": "locations"}')
-  absolute_pilates_star_vista_button = telebot.types.InlineKeyboardButton(absolute_pilates_star_vista_text, callback_data='{"locations": "StarVista", "step": "locations"}')
-  absolute_pilates_raffles_button = telebot.types.InlineKeyboardButton(absolute_pilates_raffles_text, callback_data='{"locations": "Raffles", "step": "locations"}')
-  absolute_pilates_great_world_button = telebot.types.InlineKeyboardButton(absolute_pilates_great_world_text, callback_data='{"locations": "GreatWorld", "step": "locations"}')
-
-  # Common buttons
-  select_all_button = telebot.types.InlineKeyboardButton('Select All', callback_data='{"locations": "All", "step": "locations"}')
-  unselect_all_button = telebot.types.InlineKeyboardButton('Unselect All', callback_data='{"locations": "Null", "step": "locations"}')
-  next_button = telebot.types.InlineKeyboardButton('Next ▶️', callback_data='{"step": "locations-next"}')
-
-  keyboard = telebot.types.InlineKeyboardMarkup()
-  if current_query_data.current_studio == 'Rev':
-    keyboard.add(rev_bugis_button, rev_orchard_button)
-    keyboard.add(rev_suntec_button, rev_tjpg_button)
-  elif current_query_data.current_studio == 'Barrys':
-    keyboard.add(barrys_orchard_button, barrys_raffles_button)
-  elif current_query_data.current_studio == 'Absolute (Spin)':
-    keyboard.add(absolute_spin_centrepoint_button, absolute_spin_i12_button)
-    keyboard.add(absolute_spin_star_vista_button, absolute_spin_raffles_button)
-    keyboard.add(absolute_spin_millenia_walk_button)
-  elif current_query_data.current_studio == 'Absolute (Pilates)':
-    keyboard.add(absolute_pilates_centrepoint_button, absolute_pilates_i12_button)
-    keyboard.add(absolute_pilates_star_vista_button, absolute_pilates_raffles_button)
-    keyboard.add(absolute_pilates_great_world_button)
-  keyboard.add(select_all_button, unselect_all_button)
-  keyboard.add(next_button)
-
-  sent_msg = bot.send_message(message.chat.id, text, reply_markup=keyboard, parse_mode='Markdown')
+  global locations_selection_message
+  locations_selection_message = bot.send_message(message.chat.id, text, reply_markup=get_locations_keyboard(), parse_mode='Markdown')
 
 def weeks_handler(message):
   global current_query_data
