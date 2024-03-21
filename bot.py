@@ -30,10 +30,10 @@ def studios_callback_query_handler(query):
       'Absolute (Spin)': studio_data(locations=studio_locations_map[studio_type.AbsoluteSpin]),
       'Absolute (Pilates)': studio_data(locations=studio_locations_map[studio_type.AbsolutePilates]),
     }
-    start_handler(query.message)
+    studios_handler(query.message)
   elif studios_selected == 'None':
     current_query_data.studios = {}
-    start_handler(query.message)
+    studios_handler(query.message)
   else:
     current_query_data.current_studio = studios_selected
     locations_handler(query.message)
@@ -65,7 +65,7 @@ def locations_callback_query_handler(query):
 
 @bot.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'locations-next')
 def locations_next_callback_query_handler(query):
-  start_handler(query.message)
+  studios_handler(query.message)
 
 @bot.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'studios-next')
 def studios_next_callback_query_handler(query):
@@ -73,7 +73,7 @@ def studios_next_callback_query_handler(query):
   if len(current_query_data.studios) == 0:
     text = 'Please select a studio'
     sent_msg = bot.send_message(query.message.chat.id, text, parse_mode='Markdown')
-    start_handler(query.message)
+    studios_handler(query.message)
   else:
     weeks_handler(query.message)
 
@@ -86,7 +86,7 @@ def weeks_callback_query_handler(query):
 
 @bot.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'weeks-back')
 def weeks_back_callback_query_handler(query):
-  start_handler(query.message)
+  studios_handler(query.message)
 
 @bot.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'days')
 def days_callback_query_handler(query):
@@ -226,6 +226,11 @@ def instructors_back_callback_query_handler(query):
 
 @bot.message_handler(commands=['start'])
 def start_handler(message):
+  global current_query_data
+  current_query_data = query_data(studios={}, current_studio=studio_type.Null, weeks=0, days=[])
+  studios_handler(message)
+
+def studios_handler(message):
   global current_query_data
   text = '*Schedule to check*\n'
   text += f'Studio(s):\n{current_query_data.get_selected_studios_str()}\n'
