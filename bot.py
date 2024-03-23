@@ -25,7 +25,8 @@ locations_selection_message = None
 locations_keyboard = telebot.types.InlineKeyboardMarkup()
 locations_select_all_button = telebot.types.InlineKeyboardButton('Select All', callback_data='{"locations": "All", "step": "locations"}')
 locations_unselect_all_button = telebot.types.InlineKeyboardButton('Unselect All', callback_data='{"locations": "Null", "step": "locations"}')
-locations_back_button = telebot.types.InlineKeyboardButton('◀️ Back', callback_data='{"step": "locations-back"}')
+locations_select_more_studios_button = telebot.types.InlineKeyboardButton('◀️ Select More', callback_data='{"step": "locations-select-more-studios"}')
+locations_next_button = telebot.types.InlineKeyboardButton('Next ▶️', callback_data='{"step": "studios-next"}')
 
 # Locations buttons map
 studios_locations_buttons_map = get_default_studios_locations_buttons_map()
@@ -47,7 +48,7 @@ def get_locations_keyboard() -> telebot.types.InlineKeyboardMarkup:
     locations_keyboard.add(studios_locations_buttons_map['Absolute (Pilates)']['Star Vista'], studios_locations_buttons_map['Absolute (Pilates)']['Raffles'])
     locations_keyboard.add(studios_locations_buttons_map['Absolute (Pilates)']['Great World'])
   locations_keyboard.add(locations_select_all_button, locations_unselect_all_button)
-  locations_keyboard.add(locations_back_button)
+  locations_keyboard.add(locations_select_more_studios_button, locations_next_button)
   return locations_keyboard
 
 @bot.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'studios')
@@ -119,7 +120,7 @@ def locations_callback_query_handler(query):
     reply_markup=get_locations_keyboard(),
     parse_mode='Markdown')
 
-@bot.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'locations-back')
+@bot.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'locations-select-more-studios')
 def locations_back_callback_query_handler(query):
   studios_handler(query.message)
 
