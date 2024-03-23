@@ -14,8 +14,7 @@ from rev.rev import get_rev_schedule
 BOT_TOKEN = os.environ.get('BOT_TOKEN')
 bot = telebot.TeleBot(BOT_TOKEN)
 start_command = telebot.types.BotCommand(command='start', description='Check schedules')
-refresh_command = telebot.types.BotCommand(command='refresh', description='Refresh cached schedules')
-bot.set_my_commands([start_command, refresh_command])
+bot.set_my_commands([start_command])
 
 current_query_data = query_data(studios={}, current_studio=studio_type.Null, weeks=0, days=[])
 cached_result_data = result_data()
