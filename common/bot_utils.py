@@ -28,3 +28,14 @@ def get_default_studios_locations_buttons_map() -> dict[studio_type, dict[studio
       'Great World' : telebot.types.InlineKeyboardButton('Great World', callback_data='{"locations": "GreatWorld", "step": "locations"}'),
     },
   }
+
+def get_default_days_buttons_map() -> dict[str, telebot.types.InlineKeyboardButton]:
+  return {
+    'Monday' : telebot.types.InlineKeyboardButton('Monday', callback_data='{"days": "Monday", "step": "days"}'),
+    'Tuesday' : telebot.types.InlineKeyboardButton('Tuesday', callback_data='{"days": "Tuesday", "step": "days"}'),
+    'Wednesday' : telebot.types.InlineKeyboardButton('Wednesday', callback_data='{"days": "Wednesday", "step": "days"}'),
+    'Thursday' : telebot.types.InlineKeyboardButton('Thursday', callback_data='{"days": "Thursday", "step": "days"}'),
+    'Friday' : telebot.types.InlineKeyboardButton('Friday', callback_data='{"days": "Friday", "step": "days"}'),
+    'Saturday' : telebot.types.InlineKeyboardButton('Saturday', callback_data='{"days": "Saturday", "step": "days"}'),
+    'Sunday' : telebot.types.InlineKeyboardButton('Sunday', callback_data='{"days": "Sunday", "step": "days"}'),
+  }

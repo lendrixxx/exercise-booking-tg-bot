@@ -4,7 +4,7 @@ import os
 import rev
 import telebot
 from absolute.absolute import get_absolute_schedule
-from common.bot_utils import get_default_studios_locations_buttons_map
+from common.bot_utils import get_default_days_buttons_map, get_default_studios_locations_buttons_map
 from common.data_types import query_data, result_data, sorted_days, studio_data, studio_location, studio_locations_map, studio_type
 from copy import copy
 from barrys.barrys import get_barrys_schedule
@@ -22,7 +22,6 @@ cached_result_data = result_data()
 
 # Locations buttons
 locations_selection_message = None
-locations_keyboard = telebot.types.InlineKeyboardMarkup()
 locations_select_all_button = telebot.types.InlineKeyboardButton('Select All', callback_data='{"locations": "All", "step": "locations"}')
 locations_unselect_all_button = telebot.types.InlineKeyboardButton('Unselect All', callback_data='{"locations": "Null", "step": "locations"}')
 locations_select_more_studios_button = telebot.types.InlineKeyboardButton('◀️ Select More', callback_data='{"step": "locations-select-more-studios"}')
@@ -30,6 +29,16 @@ locations_next_button = telebot.types.InlineKeyboardButton('Next ▶️', callba
 
 # Locations buttons map
 studios_locations_buttons_map = get_default_studios_locations_buttons_map()
+
+# Days buttons
+days_selection_message = None
+days_select_all_button = telebot.types.InlineKeyboardButton('Select All', callback_data='{"days": "All", "step": "days"}')
+days_unselect_all_button = telebot.types.InlineKeyboardButton('Unselect All', callback_data='{"days": "None", "step": "days"}')
+days_back_button = telebot.types.InlineKeyboardButton('◀️ Back', callback_data='{"step": "days-back"}')
+days_next_button = telebot.types.InlineKeyboardButton('Next ▶️', callback_data='{"step": "days-next"}')
+
+# Days buttons map
+days_buttons_map = get_default_days_buttons_map()
 
 def get_locations_keyboard() -> telebot.types.InlineKeyboardMarkup:
   global current_query_data
@@ -50,6 +59,17 @@ def get_locations_keyboard() -> telebot.types.InlineKeyboardMarkup:
   locations_keyboard.add(locations_select_all_button, locations_unselect_all_button)
   locations_keyboard.add(locations_select_more_studios_button, locations_next_button)
   return locations_keyboard
+
+def get_days_keyboard() -> telebot.types.InlineKeyboardMarkup:
+  global current_query_data
+  days_keyboard = telebot.types.InlineKeyboardMarkup()
+  days_keyboard.add(days_buttons_map['Monday'], days_buttons_map['Tuesday'])
+  days_keyboard.add(days_buttons_map['Wednesday'], days_buttons_map['Thursday'])
+  days_keyboard.add(days_buttons_map['Friday'], days_buttons_map['Saturday'])
+  days_keyboard.add(days_buttons_map['Sunday'])
+  days_keyboard.add(days_select_all_button, days_unselect_all_button)
+  days_keyboard.add(days_back_button, days_next_button)
+  return days_keyboard
 
 @bot.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'studios')
 def studios_callback_query_handler(query):
@@ -75,12 +95,12 @@ def studios_callback_query_handler(query):
 def locations_callback_query_handler(query):
   global current_query_data, studios_locations_buttons_map
   query_data_dict = eval(query.data)
-  studio_location_selected = studio_location[query_data_dict['locations']]
-  if studio_location_selected == studio_location.Null:
+  selected_studio_location = studio_location[query_data_dict['locations']]
+  if selected_studio_location == studio_location.Null:
     for location in studios_locations_buttons_map[current_query_data.current_studio]:
       studios_locations_buttons_map[current_query_data.current_studio][location] = telebot.types.InlineKeyboardButton(location, callback_data=studios_locations_buttons_map[current_query_data.current_studio][location].callback_data)
     current_query_data.studios.pop(current_query_data.current_studio)
-  elif studio_location_selected == studio_location.All:
+  elif selected_studio_location == studio_location.All:
     for location in studios_locations_buttons_map[current_query_data.current_studio]:
       studios_locations_buttons_map[current_query_data.current_studio][location] = telebot.types.InlineKeyboardButton(location + ' ✅', callback_data=studios_locations_buttons_map[current_query_data.current_studio][location].callback_data)
     if current_query_data.current_studio not in current_query_data.studios:
@@ -90,23 +110,23 @@ def locations_callback_query_handler(query):
       current_query_data.studios[current_query_data.current_studio].locations = copy(studio_locations_map[current_query_data.current_studio])
   else:
     if current_query_data.current_studio not in current_query_data.studios:
-      studios_locations_buttons_map[current_query_data.current_studio][studio_location_selected] = \
+      studios_locations_buttons_map[current_query_data.current_studio][selected_studio_location] = \
         telebot.types.InlineKeyboardButton(
-          studio_location_selected + ' ✅',
-          callback_data=studios_locations_buttons_map[current_query_data.current_studio][studio_location_selected].callback_data)
-      new_studio = {current_query_data.current_studio: studio_data(locations=[studio_location_selected])}
+          selected_studio_location + ' ✅',
+          callback_data=studios_locations_buttons_map[current_query_data.current_studio][selected_studio_location].callback_data)
+      new_studio = {current_query_data.current_studio: studio_data(locations=[selected_studio_location])}
       current_query_data.studios = {**current_query_data.studios, **new_studio}
-    elif studio_location_selected in current_query_data.studios[current_query_data.current_studio].locations:
-      studios_locations_buttons_map[current_query_data.current_studio][studio_location_selected] = \
+    elif selected_studio_location in current_query_data.studios[current_query_data.current_studio].locations:
+      studios_locations_buttons_map[current_query_data.current_studio][selected_studio_location] = \
         telebot.types.InlineKeyboardButton(
-          studio_location_selected,
-          callback_data=studios_locations_buttons_map[current_query_data.current_studio][studio_location_selected].callback_data)
-      current_query_data.studios[current_query_data.current_studio].locations.remove(studio_location_selected)
+          selected_studio_location,
+          callback_data=studios_locations_buttons_map[current_query_data.current_studio][selected_studio_location].callback_data)
+      current_query_data.studios[current_query_data.current_studio].locations.remove(selected_studio_location)
       if len(current_query_data.studios[current_query_data.current_studio].locations) == 0:
         current_query_data.studios.pop(current_query_data.current_studio)
     else:
-      studios_locations_buttons_map[current_query_data.current_studio][studio_location_selected] = telebot.types.InlineKeyboardButton(studio_location_selected + ' ✅', callback_data=studios_locations_buttons_map[current_query_data.current_studio][studio_location_selected].callback_data)
-      current_query_data.studios[current_query_data.current_studio].locations.append(studio_location_selected)
+      studios_locations_buttons_map[current_query_data.current_studio][selected_studio_location] = telebot.types.InlineKeyboardButton(selected_studio_location + ' ✅', callback_data=studios_locations_buttons_map[current_query_data.current_studio][selected_studio_location].callback_data)
+      current_query_data.studios[current_query_data.current_studio].locations.append(selected_studio_location)
 
   text = '*Schedule to check*\n'
   text += f'Studio(s):\n{current_query_data.get_selected_studios_str()}\n'
@@ -149,17 +169,37 @@ def weeks_back_callback_query_handler(query):
 def days_callback_query_handler(query):
   global current_query_data
   query_data_dict = eval(query.data)
-  if query_data_dict['days'] == 'None':
+  selected_day = query_data_dict['days']
+  if selected_day == 'None':
+    for day in days_buttons_map:
+      days_buttons_map[day] = telebot.types.InlineKeyboardButton(day, callback_data=days_buttons_map[day].callback_data)
     current_query_data.days = []
-  elif query_data_dict['days'] == 'All':
+  elif selected_day == 'All':
+    for day in days_buttons_map:
+      days_buttons_map[day] = telebot.types.InlineKeyboardButton(day + ' ✅', callback_data=days_buttons_map[day].callback_data)
     current_query_data.days = sorted_days
   else:
-    if query_data_dict['days'] in current_query_data.days:
-      current_query_data.days.remove(query_data_dict['days'])
+    if selected_day in current_query_data.days:
+      days_buttons_map[selected_day] = telebot.types.InlineKeyboardButton(selected_day, callback_data=days_buttons_map[selected_day].callback_data)
+      current_query_data.days.remove(selected_day)
     else:
-      current_query_data.days.append(query_data_dict['days'])
+      days_buttons_map[selected_day] = telebot.types.InlineKeyboardButton(selected_day + ' ✅', callback_data=days_buttons_map[selected_day].callback_data)
+      current_query_data.days.append(selected_day)
       current_query_data.days = sorted(current_query_data.days, key=sorted_days.index)
-  days_handler(query.message)
+
+  text = '*Schedule to check*\n'
+  text += f'Studio(s):\n{current_query_data.get_selected_studios_str()}\n'
+  text += f'Week(s): {current_query_data.weeks}\n\n'
+  text += f'Days(s): {current_query_data.get_selected_days_str()}\n'
+  text += '\n*Select the day(s) to show classes of*'
+
+  global days_selection_message
+  bot.edit_message_text(
+    chat_id=days_selection_message.chat.id,
+    message_id=days_selection_message.id,
+    text=text,
+    reply_markup=get_days_keyboard(),
+    parse_mode='Markdown')
 
 @bot.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'days-back')
 def days_back_callback_query_handler(query):
@@ -286,6 +326,7 @@ def start_handler(message):
   global current_query_data, studios_locations_buttons_map
   current_query_data = query_data(studios={}, current_studio=studio_type.Null, weeks=0, days=[])
   studios_locations_buttons_map = get_default_studios_locations_buttons_map()
+  days_buttons_map = get_default_days_buttons_map()
   studios_handler(message)
 
 def studios_handler(message):
@@ -354,33 +395,8 @@ def days_handler(message):
   text += f'Days(s): {current_query_data.get_selected_days_str()}\n'
   text += '\n*Select the day(s) to show classes of*'
 
-  monday_text = 'Monday ✅' if 'Monday' in current_query_data.days else 'Monday'
-  tuesday_text = 'Tuesday ✅' if 'Tuesday' in current_query_data.days else 'Tuesday'
-  wednesday_text = 'Wednesday ✅' if 'Wednesday' in current_query_data.days else 'Wednesday'
-  thursday_text = 'Thursday ✅' if 'Thursday' in current_query_data.days else 'Thursday'
-  friday_text = 'Friday ✅' if 'Friday' in current_query_data.days else 'Friday'
-  saturday_text = 'Saturday ✅' if 'Saturday' in current_query_data.days else 'Saturday'
-  sunday_text = 'Sunday ✅' if 'Sunday' in current_query_data.days else 'Sunday'
-  monday_button = telebot.types.InlineKeyboardButton(monday_text, callback_data='{"days": "Monday", "step": "days"}')
-  tuesday_button = telebot.types.InlineKeyboardButton(tuesday_text, callback_data='{"days": "Tuesday", "step": "days"}')
-  wednesday_button = telebot.types.InlineKeyboardButton(wednesday_text, callback_data='{"days": "Wednesday", "step": "days"}')
-  thursday_button = telebot.types.InlineKeyboardButton(thursday_text, callback_data='{"days": "Thursday", "step": "days"}')
-  friday_button = telebot.types.InlineKeyboardButton(friday_text, callback_data='{"days": "Friday", "step": "days"}')
-  saturday_button = telebot.types.InlineKeyboardButton(saturday_text, callback_data='{"days": "Saturday", "step": "days"}')
-  sunday_button = telebot.types.InlineKeyboardButton(sunday_text, callback_data='{"days": "Sunday", "step": "days"}')
-  select_all_button = telebot.types.InlineKeyboardButton('Select All', callback_data='{"days": "All", "step": "days"}')
-  unselect_all_button = telebot.types.InlineKeyboardButton('Unselect All', callback_data='{"days": "None", "step": "days"}')
-  back_button = telebot.types.InlineKeyboardButton('◀️ Back', callback_data='{"step": "days-back"}')
-  next_button = telebot.types.InlineKeyboardButton('Next ▶️', callback_data='{"step": "days-next"}')
-
-  keyboard = telebot.types.InlineKeyboardMarkup()
-  keyboard.add(monday_button, tuesday_button)
-  keyboard.add(wednesday_button, thursday_button)
-  keyboard.add(friday_button, saturday_button)
-  keyboard.add(sunday_button)
-  keyboard.add(select_all_button, unselect_all_button)
-  keyboard.add(back_button, next_button)
-  sent_msg = bot.send_message(message.chat.id, text, reply_markup=keyboard, parse_mode='Markdown')
+  global days_selection_message
+  days_selection_message = bot.send_message(message.chat.id, text, reply_markup=get_days_keyboard(), parse_mode='Markdown')
 
 def instructors_handler(message):
   global current_query_data
