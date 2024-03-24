@@ -9,12 +9,17 @@ from common.data_types import query_data, result_data, sorted_days, studio_data,
 from copy import copy
 from barrys.barrys import get_barrys_schedule
 from rev.rev import get_rev_schedule
+from absolute.data import pilates_instructor_names as absolute_pilates_instructor_names
+from absolute.data import spin_instructor_names as absolute_spin_instructor_names
+from barrys.data import instructor_names as barrys_instructor_names
+from rev.data import instructor_names as rev_instructor_names
 
 # Global variables
 BOT_TOKEN = os.environ.get('BOT_TOKEN')
 bot = telebot.TeleBot(BOT_TOKEN)
 start_command = telebot.types.BotCommand(command='start', description='Check schedules')
-bot.set_my_commands([start_command])
+instructors_command = telebot.types.BotCommand(command='instructors', description='Show list of instructors')
+bot.set_my_commands([start_command, instructors_command])
 
 current_query_data = query_data(studios={}, current_studio=studio_type.Null, weeks=0, days=[])
 cached_result_data = result_data()
@@ -79,7 +84,7 @@ def send_results(query: telebot.types.CallbackQuery) -> None:
   schedule_str = result.get_result_str()
   if len(schedule_str) > 4095:
     shortened_message = ''
-    for line in schedule_str.split('\n'):
+    for line in schedule_str.splitlines():
       is_new_day = any(day in line for day in sorted_days) and len(shortened_message) > 0
       max_len_reached = len(shortened_message) + len(line) > 4095
       if is_new_day or max_len_reached:
@@ -184,7 +189,7 @@ def weeks_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
 
 @bot.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'weeks-back')
 def weeks_back_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
-  studios_handler(query.message)
+  instructors_handler(query.message)
 
 @bot.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'days')
 def days_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
@@ -284,7 +289,7 @@ def show_instructors_callback_query_handler(query: telebot.types.CallbackQuery) 
 
 def instructors_input_handler(message: telebot.types.Message, instructorid_map: dict[str, int]) -> None:
   global current_query_data
-  current_query_data.studios[current_query_data.current_studio].instructors = [x.strip() for x in message.text.lower().split(",")]
+  current_query_data.studios[current_query_data.current_studio].instructors = [x.strip() for x in message.text.lower().split(',')]
   if 'all' in current_query_data.studios[current_query_data.current_studio].instructors:
     current_query_data.studios[current_query_data.current_studio].instructors = ['All']
   else:
@@ -301,7 +306,7 @@ def instructors_input_handler(message: telebot.types.Message, instructorid_map: 
         in current_query_data.studios[current_query_data.current_studio].instructors
         if instructor not in invalid_instructors
       ]
-      text = f'Failed to find instructors: {", ".join(invalid_instructors)}'
+      text = f'Failed to find instructor(s): {", ".join(invalid_instructors)}'
       sent_msg = bot.send_message(message.chat.id, text, parse_mode='Markdown')
 
   instructors_handler(message)
@@ -318,7 +323,7 @@ def instructors_next_callback_query_handler(query: telebot.types.CallbackQuery) 
 
 @bot.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'instructors-back')
 def instructors_back_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
-  days_handler(query.message)
+  studios_handler(query.message)
 
 @bot.message_handler(commands=['start'])
 def start_handler(message: telebot.types.Message) -> None:
@@ -347,6 +352,159 @@ def studios_handler(message: telebot.types.Message) -> None:
   keyboard.add(select_all_button, unselect_all_button)
   keyboard.add(next_button)
   sent_msg = bot.send_message(message.chat.id, text, reply_markup=keyboard, parse_mode='Markdown')
+
+
+@bot.message_handler(commands=['instructors'])
+def instructors_list_handler(message: telebot.types.Message) -> None:
+  text = '*Rev Instructors:* ' + ', '.join(rev.data.instructor_names) + '\n\n'
+  text += '*Barrys Instructors:* ' + ', '.join(barrys.data.instructor_names) + '\n\n'
+  text += '*Absolute (Spin) Instructors:* ' + ', '.join(absolute.data.spin_instructor_names) + '\n\n'
+  text += '*Absolute (Pilates) Instructors:* ' + ', '.join(absolute.data.pilates_instructor_names) + '\n\n'
+  sent_msg = bot.send_message(message.chat.id, text, parse_mode='Markdown')
+
+@bot.message_handler(commands=['nerd'])
+def nerd_handler(message: telebot.types.Message) -> None:
+  text = 'Welcome to nerd mode 🤓\n\n*Enter your query in the following format:*\n'
+  text += 'Studio name\nStudio locations (comma separated)\n'
+  text += 'Studio name (If selecting multiple studios)\nStudio locations (comma separated)\n'
+  text += 'Instructor names (comma separated)\nWeeks\nDays\n\n'
+  text += 'Studio names: *\'rev\'*, *\'barrys\'*, *\'absolute (spin)\'*, *\'absolute (pilates)\'*\n'
+  text += 'Studio locations: *\'orchard\'*, *\'tjpg\'*, *\'bugis\'*, *\'suntec\'*, *\'raffles\'*, *\'centrepoint\'*, *\'i12\'*, *\'millenia walk\'*, *\'star vista\'*, *\'great world\'*\n'
+  text += 'Instructors: Use /instructors for list of instructors\n\n'
+  text += '*e.g.*\n'
+  text += 'rev\nbugis, orchard\nchloe, zai\n'
+  text += 'absolute (spin)\nraffles\nria\n'
+  text += '2\nmonday, wednesday, saturday\n'
+  sent_msg = bot.send_message(message.chat.id, text, parse_mode='Markdown')
+  bot.register_next_step_handler(sent_msg, nerd_input_handler)
+
+def nerd_input_handler(message: telebot.types.Message) -> None:
+  '''
+  Expected message format:
+  /nerd
+  Studio name
+  Comma separated studio locations
+  Comma separated instructor names
+  Studio name (If selecting multiple studios)
+  Comma separated studio locations (If selecting multiple studios)
+  Comma separated instructor names (If selecting multiple studios)
+  Weeks
+  Days
+
+  e.g.
+  /nerd
+  rev
+  bugis, orchard
+  chloe, zai
+  absolute (spin)
+  raffles
+  ria
+  2
+  monday, wednesday, saturday
+  '''
+  input_str_list = message.text.splitlines()
+
+  # Weeks and days = 2 items. Remaining items should be divisible by 3 (studio name, locations, instructors)
+  if (len(input_str_list) - 2) % 3 != 0:
+    bot.send_message(message.chat.id, 'Failed to handle query. Unexpected format received.', parse_mode='Markdown')
+    return
+
+  # Loop through studios
+  query = query_data(studios={}, current_studio=studio_type.Null, weeks=0, days=[])
+  current_studio = studio_type.Null
+  current_studio_locations = []
+  for index, input_str in enumerate(input_str_list[:-2]):
+    step = index % 3
+    if step == 0: # Studio name
+      selected_studio = None
+      found_studio = False
+      for studio in studio_type:
+        if input_str.lower() == studio.value.lower():
+          current_studio = studio
+          found_studio = True
+          break
+      if not found_studio:
+        bot.send_message(message.chat.id, f'Failed to handle query. Unexpected studio name \'{input_str}\'', parse_mode='Markdown')
+        return
+    elif step == 1: # Studio locations
+      selected_locations = [x.strip() for x in input_str.split(',')]
+      for selected_location in selected_locations:
+        found_location = False
+        for location in studio_location:
+          if selected_location.lower() == location.value.lower():
+            current_studio_locations.append(location)
+            found_location = True
+            break
+        if not found_location:
+          bot.send_message(message.chat.id, f'Failed to handle query. Unexpected studio name \'{selected_location}\'', parse_mode='Markdown')
+          return
+    elif step == 2: # Studio instructors
+      instructor_list = []
+      if current_studio == studio_type.Rev:
+        instructor_list = rev_instructor_names
+      elif current_studio == studio_type.Barrys:
+        instructor_list = barrys_instructor_names
+      elif current_studio == studio_type.AbsolutePilates:
+        instructor_list = absolute_pilates_instructor_names
+      elif current_studio == studio_type.AbsoluteSpin:
+        instructor_list = absolute_spin_instructor_names
+
+      selected_instructors = [x.strip().lower() for x in input_str.split(',')]
+      invalid_instructors = []
+      if 'all' in selected_instructors:
+        selected_instructors = ['All']
+      else:
+        for instructor in selected_instructors:
+          found_instructor = (any(instructor in instructor_in_list.split(' ') for instructor_in_list in instructor_list)
+            or any(instructor == instructor_in_list for instructor_in_list in instructor_list))
+          if not found_instructor:
+            invalid_instructors.append(instructor)
+
+      if len(invalid_instructors) > 0:
+        selected_instructors = [instructor for instructor in selected_instructors if instructor not in invalid_instructors]
+        text = f'Failed to find instructor(s): {", ".join(invalid_instructors)}'
+        sent_msg = bot.send_message(message.chat.id, text, parse_mode='Markdown')
+
+      if len(selected_instructors) == 0:
+        bot.send_message(message.chat.id, f'Failed to handle query. No instructor selected for {current_studio}', parse_mode='Markdown')
+        return
+
+      query.studios[current_studio] = studio_data(locations=current_studio_locations, instructors = selected_instructors)
+
+  # Get number of weeks
+  try:
+    query.weeks = int(input_str_list[-2])
+  except:
+    bot.send_message(message.chat.id, f'Failed to handle query. Invalid input for \'weeks\'. Expected number, got {input_str_list[-2]}', parse_mode='Markdown')
+    return
+
+  # Get list of days
+  query.days = [x.strip().capitalize() for x in input_str_list[-1].split(',')]
+  for selected_day in query.days:
+    if selected_day.capitalize() not in sorted_days:
+      bot.send_message(message.chat.id, f'Failed to handle query. Invalid input for \'days\'. Unknown day {selected_day}', parse_mode='Markdown')
+      return
+
+  result = cached_result_data.get_data(query)
+
+  # Send string as messages
+  schedule_str = result.get_result_str()
+  if len(schedule_str) > 4095:
+    shortened_message = ''
+    for line in schedule_str.splitlines():
+      is_new_day = any(day in line for day in sorted_days) and len(shortened_message) > 0
+      max_len_reached = len(shortened_message) + len(line) > 4095
+      if is_new_day or max_len_reached:
+        bot.send_message(message.chat.id, shortened_message, parse_mode='Markdown')
+        shortened_message = line + '\n'
+      else:
+        shortened_message += line + '\n'
+
+    if len(shortened_message) > 0:
+      bot.send_message(message.chat.id, shortened_message, parse_mode='Markdown')
+  else:
+    bot.send_message(message.chat.id, schedule_str, parse_mode='Markdown')
+
 
 @bot.message_handler(commands=['refresh'])
 def refresh_handler(message: telebot.types.Message) -> None:
