@@ -114,6 +114,22 @@ class query_data:
       instructors_selected += f"{studio}: {instructor_names if len(instructor_names) > 0 else 'None'}\n"
     return instructors_selected.rstrip()
 
+  def get_query_str(self, include_studio: bool=False, include_instructors: bool=False, include_weeks: bool=False, include_days: bool=False) -> str:
+    text = '*Schedule to check*\n'
+    if include_studio:
+      text += f'Studio(s):\n{self.get_selected_studios_str()}\n\n'
+
+    if include_instructors:
+      text += f'Instructor(s)\n{self.get_selected_instructors_str()}\n\n'
+
+    if include_weeks:
+      text += f'Week(s): {self.weeks}\n\n'
+
+    if include_days:
+      text += f'Day(s): {self.get_selected_days_str()}\n\n'
+
+    return text
+
   def is_rev_in_query(self) -> bool:
     return "Rev" in self.studios
 

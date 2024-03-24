@@ -70,8 +70,31 @@ def get_days_keyboard() -> telebot.types.InlineKeyboardMarkup:
   days_keyboard.add(days_back_button, days_next_button)
   return days_keyboard
 
+def send_results(query: telebot.types.CallbackQuery) -> None:
+  global cached_result_data, current_query_data
+  result = cached_result_data.get_data(current_query_data)
+  current_query_data = query_data(studios={}, current_studio=studio_type.Null, weeks=0, days=[])
+
+  # Send string as messages
+  schedule_str = result.get_result_str()
+  if len(schedule_str) > 4095:
+    shortened_message = ''
+    for line in schedule_str.split('\n'):
+      is_new_day = any(day in line for day in sorted_days) and len(shortened_message) > 0
+      max_len_reached = len(shortened_message) + len(line) > 4095
+      if is_new_day or max_len_reached:
+        bot.send_message(query.message.chat.id, shortened_message, parse_mode='Markdown')
+        shortened_message = line + '\n'
+      else:
+        shortened_message += line + '\n'
+
+    if len(shortened_message) > 0:
+      bot.send_message(query.message.chat.id, shortened_message, parse_mode='Markdown')
+  else:
+    bot.send_message(query.message.chat.id, schedule_str, parse_mode='Markdown')
+
 @bot.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'studios')
-def studios_callback_query_handler(query):
+def studios_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
   global current_query_data
   query_data_dict = eval(query.data)
   studios_selected = query_data_dict['studios']
@@ -91,7 +114,7 @@ def studios_callback_query_handler(query):
     locations_handler(query.message)
 
 @bot.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'locations')
-def locations_callback_query_handler(query):
+def locations_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
   global current_query_data, studios_locations_buttons_map
   query_data_dict = eval(query.data)
   selected_studio_location = studio_location[query_data_dict['locations']]
@@ -127,8 +150,7 @@ def locations_callback_query_handler(query):
       studios_locations_buttons_map[current_query_data.current_studio][selected_studio_location] = telebot.types.InlineKeyboardButton(selected_studio_location + ' ✅', callback_data=studios_locations_buttons_map[current_query_data.current_studio][selected_studio_location].callback_data)
       current_query_data.studios[current_query_data.current_studio].locations.append(selected_studio_location)
 
-  text = '*Schedule to check*\n'
-  text += f'Studio(s):\n{current_query_data.get_selected_studios_str()}\n\n'
+  text = current_query_data.get_query_str(include_studio=True)
   text += '*Select the location(s) to check*'
 
   global locations_selection_message
@@ -140,32 +162,32 @@ def locations_callback_query_handler(query):
     parse_mode='Markdown')
 
 @bot.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'locations-select-more-studios')
-def locations_back_callback_query_handler(query):
+def locations_back_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
   studios_handler(query.message)
 
 @bot.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'studios-next')
-def studios_next_callback_query_handler(query):
+def studios_next_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
   global current_query_data
   if len(current_query_data.studios) == 0:
     text = 'Please select a studio'
     sent_msg = bot.send_message(query.message.chat.id, text, parse_mode='Markdown')
     studios_handler(query.message)
   else:
-    weeks_handler(query.message)
+    instructors_handler(query.message)
 
 @bot.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'weeks')
-def weeks_callback_query_handler(query):
+def weeks_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
   global current_query_data
   query_data_dict = eval(query.data)
   current_query_data.weeks = query_data_dict['weeks']
   days_handler(query.message)
 
 @bot.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'weeks-back')
-def weeks_back_callback_query_handler(query):
+def weeks_back_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
   studios_handler(query.message)
 
 @bot.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'days')
-def days_callback_query_handler(query):
+def days_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
   global current_query_data
   query_data_dict = eval(query.data)
   selected_day = query_data_dict['days']
@@ -186,10 +208,7 @@ def days_callback_query_handler(query):
       current_query_data.days.append(selected_day)
       current_query_data.days = sorted(current_query_data.days, key=sorted_days.index)
 
-  text = '*Schedule to check*\n'
-  text += f'Studio(s):\n{current_query_data.get_selected_studios_str()}\n\n'
-  text += f'Week(s): {current_query_data.weeks}\n'
-  text += f'Days(s): {current_query_data.get_selected_days_str()}\n\n'
+  text = current_query_data.get_query_str(include_studio=True, include_instructors=True, include_weeks=True, include_days=True)
   text += '*Select the day(s) to show classes of*'
 
   global days_selection_message
@@ -201,21 +220,22 @@ def days_callback_query_handler(query):
     parse_mode='Markdown')
 
 @bot.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'days-back')
-def days_back_callback_query_handler(query):
+def days_back_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
   weeks_handler(query.message)
 
 @bot.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'days-next')
-def days_next_callback_query_handler(query):
+def days_next_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
   global current_query_data
   if len(current_query_data.days) == 0:
     text = 'Please select a day'
     sent_msg = bot.send_message(query.message.chat.id, text, parse_mode='Markdown')
     days_handler(query.message)
-  else:
-    instructors_handler(query.message)
+    return
+
+  send_results(query)
 
 @bot.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'rev-instructors')
-def rev_instructors_callback_query_handler(query):
+def rev_instructors_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
   global current_query_data
   text = 'Enter instructor names separated by a comma\ne.g.: *chloe*, *jerlyn*, *zai*\nEnter "*all*" to check for all instructors'
   current_query_data.current_studio = 'Rev'
@@ -223,7 +243,7 @@ def rev_instructors_callback_query_handler(query):
   bot.register_next_step_handler(sent_msg, instructors_input_handler, rev.data.instructorid_map)
 
 @bot.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'barrys-instructors')
-def barrys_instructors_callback_query_handler(query):
+def barrys_instructors_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
   global current_query_data
   text = 'Enter instructor names separated by a comma\ne.g.: *ria*, *gino*\nEnter "*all*" to check for all instructors'
   current_query_data.current_studio = 'Barrys'
@@ -231,7 +251,7 @@ def barrys_instructors_callback_query_handler(query):
   bot.register_next_step_handler(sent_msg, instructors_input_handler, barrys.data.instructorid_map)
 
 @bot.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'absolute-spin-instructors')
-def absolute_spin_instructors_callback_query_handler(query):
+def absolute_spin_instructors_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
   global current_query_data
   text = 'Enter instructor names separated by a comma\ne.g.: *chin*, *ria*\nEnter "*all*" to check for all instructors'
   current_query_data.current_studio = 'Absolute (Spin)'
@@ -239,7 +259,7 @@ def absolute_spin_instructors_callback_query_handler(query):
   bot.register_next_step_handler(sent_msg, instructors_input_handler, absolute.data.spin_instructorid_map)
 
 @bot.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'absolute-pilates-instructors')
-def absolute_pilates_instructors_callback_query_handler(query):
+def absolute_pilates_instructors_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
   global current_query_data
   text = 'Enter instructor names separated by a comma\ne.g.: *daniella*, *vnex*\nEnter "*all*" to check for all instructors'
   current_query_data.current_studio = 'Absolute (Pilates)'
@@ -247,7 +267,7 @@ def absolute_pilates_instructors_callback_query_handler(query):
   bot.register_next_step_handler(sent_msg, instructors_input_handler, absolute.data.pilates_instructorid_map)
 
 @bot.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'show-instructors')
-def show_instructors_callback_query_handler(query):
+def show_instructors_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
   global current_query_data
   text = ''
   if 'Rev' in current_query_data.studios:
@@ -262,7 +282,7 @@ def show_instructors_callback_query_handler(query):
   sent_msg = bot.send_message(query.message.chat.id, text, parse_mode='Markdown')
   instructors_handler(query.message)
 
-def instructors_input_handler(message, instructorid_map: dict[str, int]):
+def instructors_input_handler(message: telebot.types.Message, instructorid_map: dict[str, int]) -> None:
   global current_query_data
   current_query_data.studios[current_query_data.current_studio].instructors = [x.strip() for x in message.text.lower().split(",")]
   if 'all' in current_query_data.studios[current_query_data.current_studio].instructors:
@@ -287,51 +307,30 @@ def instructors_input_handler(message, instructorid_map: dict[str, int]):
   instructors_handler(message)
 
 @bot.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'instructors-next')
-def instructors_next_callback_query_handler(query):
+def instructors_next_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
   global current_query_data, cached_result_data
   if not current_query_data.has_instructors_selected():
     text = 'Please select at least one instructor'
     sent_msg = bot.send_message(query.message.chat.id, text, parse_mode='Markdown')
     instructors_handler(query.message)
-    return
-
-  result = cached_result_data.get_data(current_query_data)
-  current_query_data = query_data(studios={}, current_studio=studio_type.Null, weeks=0, days=[])
-
-  # Send string as messages
-  schedule_str = result.get_result_str()
-  if len(schedule_str) > 4095:
-    shortened_message = ''
-    for line in schedule_str.split('\n'):
-      is_new_day = any(day in line for day in sorted_days) and len(shortened_message) > 0
-      max_len_reached = len(shortened_message) + len(line) > 4095
-      if is_new_day or max_len_reached:
-        bot.send_message(query.message.chat.id, shortened_message, parse_mode='Markdown')
-        shortened_message = line + '\n'
-      else:
-        shortened_message += line + '\n'
-
-    if len(shortened_message) > 0:
-      bot.send_message(query.message.chat.id, shortened_message, parse_mode='Markdown')
   else:
-    bot.send_message(query.message.chat.id, schedule_str, parse_mode='Markdown')
+    weeks_handler(query.message)
 
 @bot.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'instructors-back')
-def instructors_back_callback_query_handler(query):
+def instructors_back_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
   days_handler(query.message)
 
 @bot.message_handler(commands=['start'])
-def start_handler(message):
+def start_handler(message: telebot.types.Message) -> None:
   global current_query_data, studios_locations_buttons_map
   current_query_data = query_data(studios={}, current_studio=studio_type.Null, weeks=0, days=[])
   studios_locations_buttons_map = get_default_studios_locations_buttons_map()
   days_buttons_map = get_default_days_buttons_map()
   studios_handler(message)
 
-def studios_handler(message):
+def studios_handler(message: telebot.types.Message) -> None:
   global current_query_data
-  text = '*Schedule to check*\n'
-  text += f'Studio(s):\n{current_query_data.get_selected_studios_str()}\n\n'
+  text = current_query_data.get_query_str(include_studio=True)
   text += '*Select the studio(s) to check*'
 
   rev_button = telebot.types.InlineKeyboardButton('Rev', callback_data='{"studios": "Rev", "step": "studios"}')
@@ -350,7 +349,7 @@ def studios_handler(message):
   sent_msg = bot.send_message(message.chat.id, text, reply_markup=keyboard, parse_mode='Markdown')
 
 @bot.message_handler(commands=['refresh'])
-def refresh_handler(message):
+def refresh_handler(message: telebot.types.Message) -> None:
   global current_query_data
   text = 'Updating cached schedules...'
   sent_msg = bot.send_message(message.chat.id, text, parse_mode='Markdown')
@@ -358,19 +357,17 @@ def refresh_handler(message):
   text = 'Finished updating schedules'
   sent_msg = bot.send_message(message.chat.id, text, parse_mode='Markdown')
 
-def locations_handler(message):
+def locations_handler(message: telebot.types.Message):
   global current_query_data
-  text = '*Schedule to check*\n'
-  text += f'Studio(s):\n{current_query_data.get_selected_studios_str()}\n\n'
+  text = current_query_data.get_query_str(include_studio=True)
   text += '*Select the location(s) to check*'
 
   global locations_selection_message
   locations_selection_message = bot.send_message(message.chat.id, text, reply_markup=get_locations_keyboard(), parse_mode='Markdown')
 
-def weeks_handler(message):
+def weeks_handler(message: telebot.types.Message) -> None:
   global current_query_data
-  text = '*Schedule to check*\n'
-  text += f'Studio(s):\n{current_query_data.get_selected_studios_str()}\n\n'
+  text = current_query_data.get_query_str(include_studio=True, include_instructors=True, include_weeks=True)
   text += '*Select the number of weeks of classes to show*\n'
   text += 'Rev shows up to 4 weeks\nBarrys shows up to 3 weeks\nAbsolute shows up to 1.5 weeks\n'
 
@@ -386,24 +383,17 @@ def weeks_handler(message):
   keyboard.add(back_button)
   sent_msg = bot.send_message(message.chat.id, text, reply_markup=keyboard, parse_mode='Markdown')
 
-def days_handler(message):
+def days_handler(message: telebot.types.Message) -> None:
   global current_query_data
-  text = '*Schedule to check*\n'
-  text += f'Studio(s):\n{current_query_data.get_selected_studios_str()}\n\n'
-  text += f'Week(s): {current_query_data.weeks}\n'
-  text += f'Days(s): {current_query_data.get_selected_days_str()}\n\n'
+  text = current_query_data.get_query_str(include_studio=True, include_instructors=True, include_weeks=True, include_days=True)
   text += '*Select the day(s) to show classes of*'
 
   global days_selection_message
   days_selection_message = bot.send_message(message.chat.id, text, reply_markup=get_days_keyboard(), parse_mode='Markdown')
 
-def instructors_handler(message):
+def instructors_handler(message: telebot.types.Message) -> None:
   global current_query_data
-  text = '*Schedule to check*\n'
-  text += f'Studio(s):\n{current_query_data.get_selected_studios_str()}\n\n'
-  text += f'Week(s): {current_query_data.weeks}\n'
-  text += f'Day(s): {current_query_data.get_selected_days_str()}\n\n'
-  text += f'Instructor(s)\n{current_query_data.get_selected_instructors_str()}\n\n'
+  text = current_query_data.get_query_str(include_studio=True, include_instructors=True)
   text += '*Select the studio to choose instructors*'
 
   keyboard = telebot.types.InlineKeyboardMarkup()
@@ -427,7 +417,7 @@ def instructors_handler(message):
   keyboard.add(back_button, next_button)
   sent_msg = bot.send_message(message.chat.id, text, reply_markup=keyboard, parse_mode='Markdown')
 
-def update_cached_result_data():
+def update_cached_result_data() -> None:
   global cached_result_data
   cached_result_data = get_rev_schedule(locations=[studio_location.All], weeks=4, days=['All'], instructors=['All'])
   cached_result_data += get_barrys_schedule(locations=[studio_location.All], weeks=3, days=['All'], instructors=['All'])
