@@ -542,9 +542,10 @@ def weeks_handler(message: telebot.types.Message) -> None:
   sent_msg = bot.send_message(message.chat.id, text, reply_markup=keyboard, parse_mode='Markdown')
 
 def days_handler(message: telebot.types.Message) -> None:
-  global current_query_data
+  global current_query_data, days_buttons_map
   text = current_query_data.get_query_str(include_studio=True, include_instructors=True, include_weeks=True, include_days=True)
   text += '*Select the day(s) to show classes of*'
+  days_buttons_map = get_default_days_buttons_map()
 
   global days_selection_message
   days_selection_message = bot.send_message(message.chat.id, text, reply_markup=get_days_keyboard(), parse_mode='Markdown')
