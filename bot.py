@@ -3,6 +3,7 @@ import barrys
 import os
 import rev
 import telebot
+import schedule
 from absolute.absolute import get_absolute_schedule
 from common.bot_utils import get_default_days_buttons_map, get_default_studios_locations_buttons_map
 from common.data_types import query_data, result_data, sorted_days, studio_data, studio_location, studio_locations_map, studio_type
@@ -481,10 +482,13 @@ def nerd_input_handler(message: telebot.types.Message) -> None:
 
   # Get list of days
   query.days = [x.strip().capitalize() for x in input_str_list[-1].split(',')]
-  for selected_day in query.days:
-    if selected_day.capitalize() not in sorted_days:
-      bot.send_message(message.chat.id, f'Failed to handle query. Invalid input for \'days\'. Unknown day {selected_day}', parse_mode='Markdown')
-      return
+  if 'All' in query.days:
+    query.days = ['All']
+  else:
+    for selected_day in query.days:
+      if selected_day.capitalize() not in sorted_days:
+        bot.send_message(message.chat.id, f'Failed to handle query. Invalid input for \'days\'. Unknown day {selected_day}', parse_mode='Markdown')
+        return
 
   result = cached_result_data.get_data(query)
 
@@ -585,6 +589,7 @@ def update_cached_result_data() -> None:
 
 print('Starting bot...')
 update_cached_result_data()
+schedule.every().day.at("00:00").do(update_cached_result_data)
 print('Bot started!')
 
 bot.infinity_polling()

@@ -180,7 +180,7 @@ class result_data:
     for week in range(0, query.weeks):
       date_to_check = datetime.now().date() + timedelta(weeks=week)
       for day in range(7):
-        if calendar.day_name[date_to_check.weekday()] not in query.days:
+        if 'All' not in query.days and calendar.day_name[date_to_check.weekday()] not in query.days:
           date_to_check = date_to_check + timedelta(days=1)
           continue
 
@@ -190,7 +190,7 @@ class result_data:
               continue
 
             query_locations = query.get_studio_locations(class_details.studio)
-            if class_details.location not in query_locations:
+            if studio_location.All not in query_locations and class_details.location not in query_locations:
               continue
 
             is_by_instructor = 'All' in query.studios[class_details.studio].instructors \
