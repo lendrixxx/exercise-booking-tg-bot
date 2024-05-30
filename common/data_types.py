@@ -6,10 +6,12 @@ from enum import Enum
 
 class studio_type(str, Enum):
   All = 'All'
-  Rev = 'Rev'
-  Barrys = 'Barrys'
   AbsoluteSpin = 'Absolute (Spin)'
   AbsolutePilates = 'Absolute (Pilates)'
+  AllySpin = 'Ally (Spin)'
+  AllyPilates = 'Ally (Pilates)'
+  Barrys = 'Barrys'
+  Rev = 'Rev'
   Null = 'Null'
 
 class studio_location(str, Enum):
@@ -24,6 +26,7 @@ class studio_location(str, Enum):
   MilleniaWalk = 'Millenia Walk'
   StarVista = 'Star Vista'
   GreatWorld = 'Great World'
+  CrossStreet = 'Cross Street'
   Null = 'Null'
 
 class class_availability(str, Enum):
@@ -37,6 +40,8 @@ studio_locations_map = {
   studio_type.Barrys: [studio_location.Orchard, studio_location.Raffles],
   studio_type.AbsoluteSpin: [studio_location.Centrepoint, studio_location.i12, studio_location.MilleniaWalk, studio_location.Raffles, studio_location.StarVista],
   studio_type.AbsolutePilates: [studio_location.Centrepoint, studio_location.GreatWorld, studio_location.i12, studio_location.Raffles, studio_location.StarVista],
+  studio_type.AllySpin: [studio_location.CrossStreet],
+  studio_type.AllyPilates: [studio_location.CrossStreet],
 }
 
 response_availability_map = {

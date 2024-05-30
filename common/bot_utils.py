@@ -27,6 +27,12 @@ def get_default_studios_locations_buttons_map() -> dict[studio_type, dict[studio
       'Raffles' : telebot.types.InlineKeyboardButton('Raffles', callback_data='{"locations": "Raffles", "step": "locations"}'),
       'Great World' : telebot.types.InlineKeyboardButton('Great World', callback_data='{"locations": "GreatWorld", "step": "locations"}'),
     },
+    'Ally (Spin)' : {
+      'Cross Street' : telebot.types.InlineKeyboardButton('Cross Street', callback_data='{"locations": "CrossStreet", "step": "locations"}'),
+    },
+    'Ally (Pilates)' : {
+      'Cross Street' : telebot.types.InlineKeyboardButton('Cross Street', callback_data='{"locations": "CrossStreet", "step": "locations"}'),
+    },
   }
 
 def get_default_days_buttons_map() -> dict[str, telebot.types.InlineKeyboardButton]:

@@ -1,26 +1,31 @@
 import absolute
+import ally
 import barrys
 import os
 import rev
 import telebot
 import schedule
 from absolute.absolute import get_absolute_schedule
+from absolute.data import pilates_instructor_names as absolute_pilates_instructor_names
+from absolute.data import spin_instructor_names as absolute_spin_instructor_names
+from ally.ally import get_ally_schedule
+from ally.data import pilates_instructor_names as ally_pilates_instructor_names
+from ally.data import spin_instructor_names as ally_spin_instructor_names
+from barrys.barrys import get_barrys_schedule
+from barrys.data import instructor_names as barrys_instructor_names
 from common.bot_utils import get_default_days_buttons_map, get_default_studios_locations_buttons_map
 from common.data_types import query_data, result_data, sorted_days, studio_data, studio_location, studio_locations_map, studio_type
 from copy import copy
-from barrys.barrys import get_barrys_schedule
-from rev.rev import get_rev_schedule
-from absolute.data import pilates_instructor_names as absolute_pilates_instructor_names
-from absolute.data import spin_instructor_names as absolute_spin_instructor_names
-from barrys.data import instructor_names as barrys_instructor_names
 from rev.data import instructor_names as rev_instructor_names
+from rev.rev import get_rev_schedule
 
 # Global variables
 BOT_TOKEN = os.environ.get('BOT_TOKEN')
 bot = telebot.TeleBot(BOT_TOKEN)
 start_command = telebot.types.BotCommand(command='start', description='Check schedules')
+nerd_command = telebot.types.BotCommand(command='nerd', description='Nerd mode')
 instructors_command = telebot.types.BotCommand(command='instructors', description='Show list of instructors')
-bot.set_my_commands([start_command, instructors_command])
+bot.set_my_commands([start_command, nerd_command, instructors_command])
 
 current_query_data = query_data(studios={}, current_studio=studio_type.Null, weeks=0, days=[])
 cached_result_data = result_data()
@@ -61,6 +66,10 @@ def get_locations_keyboard() -> telebot.types.InlineKeyboardMarkup:
     locations_keyboard.add(studios_locations_buttons_map['Absolute (Pilates)']['Centrepoint'], studios_locations_buttons_map['Absolute (Pilates)']['i12'])
     locations_keyboard.add(studios_locations_buttons_map['Absolute (Pilates)']['Star Vista'], studios_locations_buttons_map['Absolute (Pilates)']['Raffles'])
     locations_keyboard.add(studios_locations_buttons_map['Absolute (Pilates)']['Great World'])
+  elif current_query_data.current_studio == 'Ally (Spin)':
+    locations_keyboard.add(studios_locations_buttons_map['Ally (Spin)']['Cross Street'])
+  elif current_query_data.current_studio == 'Ally (Pilates)':
+    locations_keyboard.add(studios_locations_buttons_map['Ally (Pilates)']['Cross Street'])
   locations_keyboard.add(locations_select_all_button, locations_unselect_all_button)
   locations_keyboard.add(locations_select_more_studios_button, locations_next_button)
   return locations_keyboard
@@ -110,6 +119,8 @@ def studios_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
       'Barrys': studio_data(locations=studio_locations_map[studio_type.Barrys]),
       'Absolute (Spin)': studio_data(locations=studio_locations_map[studio_type.AbsoluteSpin]),
       'Absolute (Pilates)': studio_data(locations=studio_locations_map[studio_type.AbsolutePilates]),
+      'Ally (Spin)': studio_data(locations=studio_locations_map[studio_type.AllySpin]),
+      'Ally (Pilates)': studio_data(locations=studio_locations_map[studio_type.AllyPilates]),
     }
     studios_handler(query.message)
   elif studios_selected == 'None':
@@ -272,6 +283,22 @@ def absolute_pilates_instructors_callback_query_handler(query: telebot.types.Cal
   sent_msg = bot.send_message(query.message.chat.id, text, parse_mode='Markdown')
   bot.register_next_step_handler(sent_msg, instructors_input_handler, absolute.data.pilates_instructorid_map)
 
+@bot.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'ally-spin-instructors')
+def ally_spin_instructors_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
+  global current_query_data
+  text = 'Enter instructor names separated by a comma\ne.g.: *samuel*, *jasper*\nEnter "*all*" to check for all instructors'
+  current_query_data.current_studio = 'Ally (Spin)'
+  sent_msg = bot.send_message(query.message.chat.id, text, parse_mode='Markdown')
+  bot.register_next_step_handler(sent_msg, instructors_input_handler, ally.data.spin_instructorid_map)
+
+@bot.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'ally-pilates-instructors')
+def ally_pilates_instructors_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
+  global current_query_data
+  text = 'Enter instructor names separated by a comma\ne.g.: *candice*, *ruth*\nEnter "*all*" to check for all instructors'
+  current_query_data.current_studio = 'Ally (Pilates)'
+  sent_msg = bot.send_message(query.message.chat.id, text, parse_mode='Markdown')
+  bot.register_next_step_handler(sent_msg, instructors_input_handler, ally.data.pilates_instructorid_map)
+
 @bot.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'show-instructors')
 def show_instructors_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
   global current_query_data
@@ -284,6 +311,10 @@ def show_instructors_callback_query_handler(query: telebot.types.CallbackQuery) 
     text += '*Absolute (Spin) Instructors:* ' + ', '.join(absolute.data.spin_instructor_names) + '\n\n'
   if 'Absolute (Pilates)' in current_query_data.studios:
     text += '*Absolute (Pilates) Instructors:* ' + ', '.join(absolute.data.pilates_instructor_names) + '\n\n'
+  if 'Ally (Spin)' in current_query_data.studios:
+    text += '*Ally (Spin) Instructors:* ' + ', '.join(ally.data.spin_instructor_names) + '\n\n'
+  if 'Ally (Pilates)' in current_query_data.studios:
+    text += '*Ally (Pilates) Instructors:* ' + ', '.join(ally.data.pilates_instructor_names) + '\n\n'
 
   sent_msg = bot.send_message(query.message.chat.id, text, parse_mode='Markdown')
   instructors_handler(query.message)
@@ -343,6 +374,8 @@ def studios_handler(message: telebot.types.Message) -> None:
   barrys_button = telebot.types.InlineKeyboardButton('Barrys', callback_data='{"studios": "Barrys", "step": "studios"}')
   absolute_spin_button = telebot.types.InlineKeyboardButton('Absolute (Spin)', callback_data='{"studios": "Absolute (Spin)", "step": "studios"}')
   absolute_pilates_button = telebot.types.InlineKeyboardButton('Absolute (Pilates)', callback_data='{"studios": "Absolute (Pilates)", "step": "studios"}')
+  ally_spin_button = telebot.types.InlineKeyboardButton('Ally (Spin)', callback_data='{"studios": "Ally (Spin)", "step": "studios"}')
+  ally_pilates_button = telebot.types.InlineKeyboardButton('Ally (Pilates)', callback_data='{"studios": "Ally (Pilates)", "step": "studios"}')
   select_all_button = telebot.types.InlineKeyboardButton('Select All', callback_data='{"studios": "All", "step": "studios"}')
   unselect_all_button = telebot.types.InlineKeyboardButton('Unselect All', callback_data='{"studios": "None", "step": "studios"}')
   next_button = telebot.types.InlineKeyboardButton('Next ▶️', callback_data='{"step": "studios-next"}')
@@ -350,6 +383,7 @@ def studios_handler(message: telebot.types.Message) -> None:
   keyboard = telebot.types.InlineKeyboardMarkup()
   keyboard.add(rev_button, barrys_button)
   keyboard.add(absolute_spin_button, absolute_pilates_button)
+  keyboard.add(ally_spin_button, ally_pilates_button)
   keyboard.add(select_all_button, unselect_all_button)
   keyboard.add(next_button)
   sent_msg = bot.send_message(message.chat.id, text, reply_markup=keyboard, parse_mode='Markdown')
@@ -361,22 +395,36 @@ def instructors_list_handler(message: telebot.types.Message) -> None:
   text += '*Barrys Instructors:* ' + ', '.join(barrys.data.instructor_names) + '\n\n'
   text += '*Absolute (Spin) Instructors:* ' + ', '.join(absolute.data.spin_instructor_names) + '\n\n'
   text += '*Absolute (Pilates) Instructors:* ' + ', '.join(absolute.data.pilates_instructor_names) + '\n\n'
+  text += '*Ally (Spin) Instructors:* ' + ', '.join(ally.data.spin_instructor_names) + '\n\n'
+  text += '*Ally (Pilates) Instructors:* ' + ', '.join(ally.data.pilates_instructor_names) + '\n\n'
   sent_msg = bot.send_message(message.chat.id, text, parse_mode='Markdown')
 
 @bot.message_handler(commands=['nerd'])
 def nerd_handler(message: telebot.types.Message) -> None:
-  text = 'Welcome to nerd mode 🤓\n\n*Enter your query in the following format:*\n'
-  text += 'Studio name\nStudio locations (comma separated)\nInstructor names (comma separated)\n'
-  text += '(Repeat above for multiple studios)\nWeeks\nDays\n'
-  text += '\n'
-  text += 'Studio names: *\'rev\'*, *\'barrys\'*,\n*\'absolute (spin)\'*, *\'absolute (pilates)\'*\n'
-  text += 'Studio locations: *\'orchard\'*, *\'tjpg\'*, *\'bugis\'*, *\'suntec\'*, *\'raffles\'*, *\'centrepoint\'*, *\'i12\'*, *\'millenia walk\'*, *\'star vista\'*,\n*\'great world\'*\n'
-  text += 'Instructors: Use /instructors for list of instructors\n'
-  text += '\n'
-  text += '*e.g.*\n'
-  text += 'rev\nbugis, orchard\nchloe, zai\n'
-  text += 'absolute (spin)\nraffles\nria\n'
-  text += '2\nmonday, wednesday, saturday\n'
+  text = "Welcome to nerd mode 🤓\n" \
+         "\n" \
+         "*Enter your query in the following format:*\n" \
+         "Studio name\n" \
+         "Studio locations (comma separated)\n" \
+         "Instructor names (comma separated)\n" \
+         "(Repeat above for multiple studios)\n" \
+         "Weeks\n" \
+         "Days\n" \
+         "\n" \
+         "*Studio names*: rev, barrys, absolute (spin), absolute (pilates), ally (spin), ally (pilates)\n" \
+         "*Studio locations*: orchard, tjpg, bugis, suntec, raffles, centrepoint, i12, millenia walk, star vista, great world\n" \
+         "*Instructors*: Use /instructors for list of instructors\n" \
+         "\n" \
+         "*e.g.*\n" \
+         "rev\n" \
+         "bugis, orchard\n" \
+         "chloe, zai\n" \
+         "absolute (spin)\n" \
+         "raffles\n" \
+         "ria\n" \
+         "2\n" \
+         "monday, wednesday, saturday\n"
+
   sent_msg = bot.send_message(message.chat.id, text, parse_mode='Markdown')
   bot.register_next_step_handler(sent_msg, nerd_input_handler)
 
@@ -450,6 +498,10 @@ def nerd_input_handler(message: telebot.types.Message) -> None:
         instructor_list = absolute_pilates_instructor_names
       elif current_studio == studio_type.AbsoluteSpin:
         instructor_list = absolute_spin_instructor_names
+      elif current_studio == studio_type.AllyPilates:
+        instructor_list = ally_pilates_instructor_names
+      elif current_studio == studio_type.AllySpin:
+        instructor_list = ally_spin_instructor_names
 
       selected_instructors = [x.strip().lower() for x in input_str.split(',')]
       invalid_instructors = []
@@ -532,7 +584,7 @@ def weeks_handler(message: telebot.types.Message) -> None:
   global current_query_data
   text = current_query_data.get_query_str(include_studio=True, include_instructors=True, include_weeks=True)
   text += '*Select the number of weeks of classes to show*\n'
-  text += 'Rev shows up to 4 weeks\nBarrys shows up to 3 weeks\nAbsolute shows up to 1.5 weeks\n'
+  text += 'Absolute shows up to 1.5 weeks\nAlly shows up to 2 weeks\nBarrys shows up to 3 weeks\nRev shows up to 4 weeks\n'
 
   one_button = telebot.types.InlineKeyboardButton('1', callback_data='{"weeks": 1, "step": "weeks"}')
   two_button = telebot.types.InlineKeyboardButton('2', callback_data='{"weeks": 2, "step": "weeks"}')
@@ -573,6 +625,12 @@ def instructors_handler(message: telebot.types.Message) -> None:
   if 'Absolute (Pilates)' in current_query_data.studios:
     absolute_pilates_instructors_button = telebot.types.InlineKeyboardButton('Enter Absolute (Pilates) Instructor(s)', callback_data='{"step": "absolute-pilates-instructors"}')
     keyboard.add(absolute_pilates_instructors_button)
+  if 'Ally (Spin)' in current_query_data.studios:
+    ally_spin_instructors_button = telebot.types.InlineKeyboardButton('Enter Ally (Spin) Instructor(s)', callback_data='{"step": "ally-spin-instructors"}')
+    keyboard.add(ally_spin_instructors_button)
+  if 'Ally (Pilates)' in current_query_data.studios:
+    ally_pilates_instructors_button = telebot.types.InlineKeyboardButton('Enter Ally (Pilates) Instructor(s)', callback_data='{"step": "ally-pilates-instructors"}')
+    keyboard.add(ally_pilates_instructors_button)
 
   show_instructors_button = telebot.types.InlineKeyboardButton('Show Names of Instructors', callback_data='{"step": "show-instructors"}')
   next_button = telebot.types.InlineKeyboardButton('Next ▶️', callback_data='{"step": "instructors-next"}')
@@ -583,9 +641,10 @@ def instructors_handler(message: telebot.types.Message) -> None:
 
 def update_cached_result_data() -> None:
   global cached_result_data
-  cached_result_data = get_rev_schedule(locations=[studio_location.All], weeks=4, days=['All'], instructors=['All'])
+  cached_result_data = get_absolute_schedule(locations=[studio_location.All], weeks=2, days=['All'], instructors=['All'])
+  cached_result_data += get_ally_schedule(weeks=2, days=['All'], instructors=['All'])
   cached_result_data += get_barrys_schedule(locations=[studio_location.All], weeks=3, days=['All'], instructors=['All'])
-  cached_result_data += get_absolute_schedule(locations=list(absolute.data.location_map), weeks=2, days=['All'], instructors=['All'])
+  cached_result_data += get_rev_schedule(locations=[studio_location.All], weeks=4, days=['All'], instructors=['All'])
 
 print('Starting bot...')
 update_cached_result_data()

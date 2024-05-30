@@ -73,6 +73,8 @@ spin_instructorid_map = {
   'zul' : 1656300400749315316,
 }
 
+instructorid_map = {**pilates_instructorid_map, **spin_instructorid_map}
+
 location_map = {
   studio_location.Centrepoint: 1,
   studio_location.StarVista: 2,
@@ -93,7 +95,3 @@ location_str_map = {
 
 pilates_instructor_names = list(pilates_instructorid_map)
 spin_instructor_names = list(spin_instructorid_map)
-pilates_locations = list(location_map)
-pilates_locations.remove('Millenia Walk')
-spin_locations = list(location_map)
-spin_locations.remove('Great World')
