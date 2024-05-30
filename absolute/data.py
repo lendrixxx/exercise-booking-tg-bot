@@ -82,6 +82,15 @@ location_map = {
   studio_location.Raffles: 8,
 }
 
+location_str_map = {
+  'The Centrepoint (CTP)' : studio_location.Centrepoint,
+  'The Star Vista (STV)' : studio_location.StarVista,
+  'Millenia Walk (MW)' : studio_location.MilleniaWalk,
+  'i12 Katong (KTG)' : studio_location.i12,
+  'Great World (GW)' : studio_location.GreatWorld,
+  'Raffles Place (RP)' : studio_location.Raffles,
+}
+
 pilates_instructor_names = list(pilates_instructorid_map)
 spin_instructor_names = list(spin_instructorid_map)
 pilates_locations = list(location_map)
