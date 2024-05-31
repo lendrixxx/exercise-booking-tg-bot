@@ -1,6 +1,6 @@
-from common.data_types import studio_location
+from common.data_types import StudioLocation
 
-pilates_instructorid_map = {
+PILATES_INSTRUCTORID_MAP = {
   'arlene' : 2160875872725238935,
   'audrey' : 1996994498550302066,
   'birdie' : 1180807733788542506,
@@ -32,7 +32,7 @@ pilates_instructorid_map = {
   'zul' : 1656300400749315316,
 }
 
-spin_instructorid_map = {
+SPIN_INSTRUCTORID_MAP = {
   'adli' : 1645448892432516382,
   'aminah' : 1260133520399926445,
   'belle' : 1667940767512921923,
@@ -73,25 +73,25 @@ spin_instructorid_map = {
   'zul' : 1656300400749315316,
 }
 
-instructorid_map = {**pilates_instructorid_map, **spin_instructorid_map}
+INSTRUCTORID_MAP = {**PILATES_INSTRUCTORID_MAP, **SPIN_INSTRUCTORID_MAP}
 
-location_map = {
-  studio_location.Centrepoint: 1,
-  studio_location.StarVista: 2,
-  studio_location.MilleniaWalk: 3,
-  studio_location.i12: 5,
-  studio_location.GreatWorld: 6,
-  studio_location.Raffles: 8,
+LOCATION_MAP = {
+  StudioLocation.Centrepoint: 1,
+  StudioLocation.StarVista: 2,
+  StudioLocation.MilleniaWalk: 3,
+  StudioLocation.i12: 5,
+  StudioLocation.GreatWorld: 6,
+  StudioLocation.Raffles: 8,
 }
 
-location_str_map = {
-  'The Centrepoint (CTP)' : studio_location.Centrepoint,
-  'The Star Vista (STV)' : studio_location.StarVista,
-  'Millenia Walk (MW)' : studio_location.MilleniaWalk,
-  'i12 Katong (KTG)' : studio_location.i12,
-  'Great World (GW)' : studio_location.GreatWorld,
-  'Raffles Place (RP)' : studio_location.Raffles,
+LOCATION_STR_MAP = {
+  'The Centrepoint (CTP)' : StudioLocation.Centrepoint,
+  'The Star Vista (STV)' : StudioLocation.StarVista,
+  'Millenia Walk (MW)' : StudioLocation.MilleniaWalk,
+  'i12 Katong (KTG)' : StudioLocation.i12,
+  'Great World (GW)' : StudioLocation.GreatWorld,
+  'Raffles Place (RP)' : StudioLocation.Raffles,
 }
 
-pilates_instructor_names = list(pilates_instructorid_map)
-spin_instructor_names = list(spin_instructorid_map)
+PILATES_INSTRUCTOR_NAMES = list(PILATES_INSTRUCTORID_MAP)
+SPIN_INSTRUCTOR_NAMES = list(SPIN_INSTRUCTORID_MAP)

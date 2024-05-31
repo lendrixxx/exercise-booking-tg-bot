@@ -1,7 +1,7 @@
 import telebot
-from common.data_types import studio_location, studio_type
+from common.data_types import StudioLocation, StudioType
 
-def get_default_studios_locations_buttons_map() -> dict[studio_type, dict[studio_location, telebot.types.InlineKeyboardButton]]:
+def get_default_studios_locations_buttons_map() -> dict[StudioType, dict[StudioLocation, telebot.types.InlineKeyboardButton]]:
   return {
     'Rev' : {
       'Bugis' : telebot.types.InlineKeyboardButton('Bugis', callback_data='{"locations": "Bugis", "step": "locations"}'),

@@ -1,12 +1,12 @@
 import calendar
 import requests
 from bs4 import BeautifulSoup
-from common.data_types import class_availability, class_data, response_availability_map, result_data, studio_location, studio_type
+from common.data_types import ClassAvailability, ClassData, RESPONSE_AVAILABILITY_MAP, ResultData, StudioLocation, StudioType
 from copy import copy
 from datetime import datetime, timedelta
-from barrys.data import instructorid_map, location_map, response_location_to_studio_location_map
+from barrys.data import INSTRUCTORID_MAP, LOCATION_MAP, RESPONSE_LOCATION_TO_STUDIO_LOCATION_MAP
 
-def send_get_schedule_request(locations: list[studio_location], week: int, instructor: str):
+def send_get_schedule_request(locations: list[StudioLocation], week: int, instructor: str):
     url = 'https://apac.barrysbootcamp.com.au/reserve/index.cfm?action=Reserve.chooseClass'
     params = {'wk': max(0, min(week, 2))}
 
@@ -15,24 +15,24 @@ def send_get_schedule_request(locations: list[studio_location], week: int, instr
     else:
       site_param_name = 'site'
       for location in locations:
-        params[site_param_name] = location_map[location]
+        params[site_param_name] = LOCATION_MAP[location]
         if site_param_name == 'site':
           site_param_name = 'site2'
         else:
           break
 
     if instructor != 'All':
-      params = {**params, **{'instructorid': instructorid_map[instructor]}}
+      params = {**params, **{'instructorid': INSTRUCTORID_MAP[instructor]}}
 
     return requests.get(url=url, params=params)
 
-def parse_get_schedule_response(response, week: int, days: list[str], locations: list[studio_location]) -> dict[datetime.date, list[class_data]]:
+def parse_get_schedule_response(response, week: int, days: list[str], locations: list[StudioLocation]) -> dict[datetime.date, list[ClassData]]:
   soup = BeautifulSoup(response.text, 'html.parser')
 
-  if len(locations) == 1 and studio_location.All not in locations:
+  if len(locations) == 1 and StudioLocation.All not in locations:
     location = locations[0]
   else:
-    location = studio_location.Null
+    location = StudioLocation.Null
 
   result_dict = {}
   # Get yesterday's date and update date at the start of each loop
@@ -57,14 +57,14 @@ def parse_get_schedule_response(response, week: int, days: list[str], locations:
     for schedule_block_div in schedule_block_div_list:
       schedule_block_div_class_list = schedule_block_div.get('class')
       if len(schedule_block_div_class_list) < 2:
-        availability = class_availability.Null
+        availability = ClassAvailability.Null
       else:
         availability_str = schedule_block_div_class_list[1]
         if availability_str == 'empty': # No classes available for the day
           continue
-        availability = response_availability_map[availability_str]
+        availability = RESPONSE_AVAILABILITY_MAP[availability_str]
 
-      class_details = class_data(studio=studio_type.Barrys, location=location, name='', instructor='', time='', availability=availability)
+      class_details = ClassData(studio=StudioType.Barrys, location=location, name='', instructor='', time='', availability=availability)
       for schedule_block_div_span in schedule_block_div.find_all('span'):
         schedule_block_div_span_class = schedule_block_div_span.get('class')
         if schedule_block_div_span_class is None:
@@ -74,7 +74,7 @@ def parse_get_schedule_response(response, week: int, days: list[str], locations:
           class_details.set_time(str(schedule_block_div_span.contents[0].get_text()))
         if 'scheduleSite' in schedule_block_div_span_class:
           location_str = str(schedule_block_div_span.contents[0].get_text())
-          class_details.location = response_location_to_studio_location_map[location_str]
+          class_details.location = RESPONSE_LOCATION_TO_STUDIO_LOCATION_MAP[location_str]
         elif 'scheduleClass' in schedule_block_div_span_class:
           class_details.name = str(schedule_block_div_span.contents[0].get_text())
         elif 'scheduleInstruc' in schedule_block_div_span_class:
@@ -87,8 +87,8 @@ def parse_get_schedule_response(response, week: int, days: list[str], locations:
 
   return result_dict
 
-def get_barrys_schedule(locations: list[studio_location], weeks: int, days: list[str], instructors: list[str]) -> result_data:
-  result = result_data()
+def get_barrys_schedule(locations: list[StudioLocation], weeks: int, days: list[str], instructors: list[str]) -> ResultData:
+  result = ResultData()
   # REST API can only select one instructor at a time
   for instructor in instructors:
     # REST API can only select one week at a time

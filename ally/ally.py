@@ -1,21 +1,21 @@
 import calendar
 import requests
 from bs4 import BeautifulSoup
-from common.data_types import class_availability, class_data, response_availability_map, result_data, studio_location, studio_type
+from common.data_types import ClassAvailability, ClassData, RESPONSE_AVAILABILITY_MAP, ResultData, StudioLocation, StudioType
 from copy import copy
 from datetime import datetime, timedelta
-from ally.data import instructorid_map
+from ally.data import INSTRUCTORID_MAP
 
 def send_get_schedule_request(week: int, instructor: str):
     url = 'https://ally.zingfit.com/reserve/index.cfm?action=Reserve.chooseClass'
     params = {'wk': week, 'site': 1} # Ally only has 1 location currently
 
     if instructor != 'All':
-      params = {**params, **{'instructorid': instructorid_map[instructor]}}
+      params = {**params, **{'instructorid': INSTRUCTORID_MAP[instructor]}}
 
     return requests.get(url=url, params=params)
 
-def parse_get_schedule_response(response, week: int, days: list[str]) -> dict[datetime.date, list[class_data]]:
+def parse_get_schedule_response(response, week: int, days: list[str]) -> dict[datetime.date, list[ClassData]]:
   soup = BeautifulSoup(response.text, 'html.parser')
   reserve_table_list = [table for table in soup.find_all('table') if table.get('id') == 'reserve']
   reserve_table_list_len = len(reserve_table_list)
@@ -55,11 +55,11 @@ def parse_get_schedule_response(response, week: int, days: list[str]) -> dict[da
     for reserve_table_data_div in reserve_table_data_div_list:
       reserve_table_data_div_class_list = reserve_table_data_div.get('class')
       if len(reserve_table_data_div_class_list) < 2:
-        availability = class_availability.Null
+        availability = ClassAvailability.Null
       else:
-        availability = response_availability_map[reserve_table_data_div_class_list[1]]
+        availability = RESPONSE_AVAILABILITY_MAP[reserve_table_data_div_class_list[1]]
 
-      class_details = class_data(studio=studio_type.AllySpin, location=studio_location.CrossStreet, name='', instructor='', time='', availability=availability)
+      class_details = ClassData(studio=StudioType.AllySpin, location=StudioLocation.CrossStreet, name='', instructor='', time='', availability=availability)
       for reserve_table_data_div_span in reserve_table_data_div.find_all('span'):
         reserve_table_data_div_span_class_list = reserve_table_data_div_span.get('class')
         if len(reserve_table_data_div_span_class_list) == 0:
@@ -76,7 +76,7 @@ def parse_get_schedule_response(response, week: int, days: list[str]) -> dict[da
             continue
 
           class_details.set_time(str(reserve_table_data_div_span.contents[0].strip()))
-          class_details.studio = studio_type.AllySpin if 'RIDE' in class_details.name else studio_type.AllyPilates
+          class_details.studio = StudioType.AllySpin if 'RIDE' in class_details.name else StudioType.AllyPilates
           result_dict[current_date].append(copy(class_details))
 
     if len(result_dict[current_date]) == 0:
@@ -84,8 +84,8 @@ def parse_get_schedule_response(response, week: int, days: list[str]) -> dict[da
 
   return result_dict
 
-def get_ally_schedule(weeks: int, days: list[str], instructors: list[str]) -> result_data:
-  result = result_data()
+def get_ally_schedule(weeks: int, days: list[str], instructors: list[str]) -> ResultData:
+  result = ResultData()
   # REST API can only select one instructor at a time
   for instructor in instructors:
     # REST API can only select one week at a time

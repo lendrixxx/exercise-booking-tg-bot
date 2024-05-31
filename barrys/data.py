@@ -1,6 +1,6 @@
-from common.data_types import studio_location
+from common.data_types import StudioLocation
 
-instructorid_map = {
+INSTRUCTORID_MAP = {
   'cassandra': 1488914980282566323,
   'gino': 1962218357339981238,
   'hyekel': 1575299441340974436,
@@ -16,15 +16,14 @@ instructorid_map = {
   'stephanie': 1488914369566737506,
 }
 
-location_map = {
-  studio_location.Raffles: 1,
-  studio_location.Orchard: 12,
+LOCATION_MAP = {
+  StudioLocation.Raffles: 1,
+  StudioLocation.Orchard: 12,
 }
 
-response_location_to_studio_location_map = {
-  'Orchard' : studio_location.Orchard,
-  'Raffles Place' : studio_location.Raffles,
+RESPONSE_LOCATION_TO_STUDIO_LOCATION_MAP = {
+  'Orchard' : StudioLocation.Orchard,
+  'Raffles Place' : StudioLocation.Raffles,
 }
 
-instructor_names = list(instructorid_map)
-locations = list(location_map)
+INSTRUCTOR_NAMES = list(INSTRUCTORID_MAP)

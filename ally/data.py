@@ -1,6 +1,6 @@
-from common.data_types import studio_location
+from common.data_types import StudioLocation
 
-pilates_instructorid_map = {
+PILATES_INSTRUCTORID_MAP = {
   'andre w' : 2037722864135702427,
   'candice q' : 1955672703272748156,
   'janet c' : 1955670656183960814,
@@ -10,7 +10,7 @@ pilates_instructorid_map = {
   'valerie n' : 1537574315606672790,
 }
 
-spin_instructorid_map = {
+SPIN_INSTRUCTORID_MAP = {
   'ally' : 1642510301125412688,
   'camille m' : 1675489003639408248,
   'cheryl o' : 2041800085439776037,
@@ -28,11 +28,11 @@ spin_instructorid_map = {
   'zachary t' : 2023749708073141918,
 }
 
-instructorid_map = {**pilates_instructorid_map, **spin_instructorid_map}
+INSTRUCTORID_MAP = {**PILATES_INSTRUCTORID_MAP, **SPIN_INSTRUCTORID_MAP}
 
-location_map = {
-  studio_location.CrossStreet: 1,
+LOCATION_MAP = {
+  StudioLocation.CrossStreet: 1,
 }
 
-pilates_instructor_names = list(pilates_instructorid_map)
-spin_instructor_names = list(spin_instructorid_map)
+PILATES_INSTRUCTOR_NAMES = list(PILATES_INSTRUCTORID_MAP)
+SPIN_INSTRUCTOR_NAMES = list(SPIN_INSTRUCTORID_MAP)

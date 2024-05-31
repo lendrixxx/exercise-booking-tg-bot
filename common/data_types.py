@@ -4,7 +4,7 @@ from copy import copy
 from datetime import datetime, timedelta
 from enum import Enum
 
-class studio_type(str, Enum):
+class StudioType(str, Enum):
   All = 'All'
   AbsoluteSpin = 'Absolute (Spin)'
   AbsolutePilates = 'Absolute (Pilates)'
@@ -14,7 +14,7 @@ class studio_type(str, Enum):
   Rev = 'Rev'
   Null = 'Null'
 
-class studio_location(str, Enum):
+class StudioLocation(str, Enum):
   All = 'All'
   Orchard = 'Orchard'
   TJPG = 'TJPG'
@@ -29,31 +29,31 @@ class studio_location(str, Enum):
   CrossStreet = 'Cross Street'
   Null = 'Null'
 
-class class_availability(str, Enum):
+class ClassAvailability(str, Enum):
   Available = 'Available'
   Waitlist = 'Waitlist'
   Full = 'Full'
   Null = 'Null'
 
-studio_locations_map = {
-  studio_type.Rev: [studio_location.Orchard, studio_location.TJPG, studio_location.Bugis, studio_location.Suntec],
-  studio_type.Barrys: [studio_location.Orchard, studio_location.Raffles],
-  studio_type.AbsoluteSpin: [studio_location.Centrepoint, studio_location.i12, studio_location.MilleniaWalk, studio_location.Raffles, studio_location.StarVista],
-  studio_type.AbsolutePilates: [studio_location.Centrepoint, studio_location.GreatWorld, studio_location.i12, studio_location.Raffles, studio_location.StarVista],
-  studio_type.AllySpin: [studio_location.CrossStreet],
-  studio_type.AllyPilates: [studio_location.CrossStreet],
+STUDIO_LOCATIONS_MAP = {
+  StudioType.Rev: [StudioLocation.Orchard, StudioLocation.TJPG, StudioLocation.Bugis, StudioLocation.Suntec],
+  StudioType.Barrys: [StudioLocation.Orchard, StudioLocation.Raffles],
+  StudioType.AbsoluteSpin: [StudioLocation.Centrepoint, StudioLocation.i12, StudioLocation.MilleniaWalk, StudioLocation.Raffles, StudioLocation.StarVista],
+  StudioType.AbsolutePilates: [StudioLocation.Centrepoint, StudioLocation.GreatWorld, StudioLocation.i12, StudioLocation.Raffles, StudioLocation.StarVista],
+  StudioType.AllySpin: [StudioLocation.CrossStreet],
+  StudioType.AllyPilates: [StudioLocation.CrossStreet],
 }
 
-response_availability_map = {
-  'bookable' : class_availability.Available,
-  'classfull' : class_availability.Waitlist,
-  'waitlistfull' : class_availability.Full,
+RESPONSE_AVAILABILITY_MAP = {
+  'bookable' : ClassAvailability.Available,
+  'classfull' : ClassAvailability.Waitlist,
+  'waitlistfull' : ClassAvailability.Full,
 }
 
-sorted_days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+SORTED_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
-class class_data:
-  def __init__(self, studio:studio_type, location:studio_location, name:str, instructor:str, time:str, availability:class_availability):
+class ClassData:
+  def __init__(self, studio:StudioType, location:StudioLocation, name:str, instructor:str, time:str, availability:ClassAvailability):
     self.studio = studio
     self.location = location
     self.name = name
@@ -65,27 +65,29 @@ class class_data:
     last_pos = time.find('M') + 1
     self.time = time[:last_pos]
 
-  def __eq__(self, other: 'class_data') -> bool:
+  def __eq__(self, other: 'ClassData') -> bool:
     return self.studio == other.studio and self.location == other.location and self.name == other.name and self.instructor == other.instructor and self.time == other.time
 
-  def __lt__(self, other: 'class_data') -> bool:
+  def __lt__(self, other: 'ClassData') -> bool:
     self_time = datetime.strptime(self.time,'%I:%M %p')
     other_time = datetime.strptime(other.time,'%I:%M %p')
     return self_time < other_time
 
-class studio_data:
-  def __init__(self, locations: list[studio_location]=None, instructors: list[str]=None):
+
+class StudioData:
+  def __init__(self, locations: list[StudioLocation]=None, instructors: list[str]=None):
     self.locations = locations
     self.instructors = [] if instructors is None else instructors
 
-class query_data:
-  def __init__(self, studios: dict[str, studio_data], current_studio: studio_type, weeks: int, days: list[str]):
+
+class QueryData:
+  def __init__(self, studios: dict[str, StudioData], current_studio: StudioType, weeks: int, days: list[str]):
     self.studios = {} if studios is None else studios
     self.current_studio = current_studio
     self.weeks = weeks
     self.days = days
 
-  def get_studio_locations(self, studio_name: str) -> list[studio_location]:
+  def get_studio_locations(self, studio_name: str) -> list[StudioLocation]:
     if studio_name not in self.studios:
       return []
 
@@ -115,8 +117,8 @@ class query_data:
 
     instructors_selected = ""
     for studio in self.studios:
-      instructor_names = ', '.join(self.studios[studio].instructors)
-      instructors_selected += f"{studio}: {instructor_names if len(instructor_names) > 0 else 'None'}\n"
+      INSTRUCTOR_NAMES = ', '.join(self.studios[studio].instructors)
+      instructors_selected += f"{studio}: {INSTRUCTOR_NAMES if len(INSTRUCTOR_NAMES) > 0 else 'None'}\n"
     return instructors_selected.rstrip()
 
   def get_query_str(self, include_studio: bool=False, include_instructors: bool=False, include_weeks: bool=False, include_days: bool=False) -> str:
@@ -152,18 +154,17 @@ class query_data:
     return True
 
 
-
-class result_data:
-  def __init__(self, classes: dict[datetime.date, list[class_data]]=None):
+class ResultData:
+  def __init__(self, classes: dict[datetime.date, list[ClassData]]=None):
     self.classes = {} if classes is None else classes
 
-  def add_class(self, date: datetime.date, data: class_data) -> None:
+  def add_class(self, date: datetime.date, data: ClassData) -> None:
     if date not in self.classes:
       self.classes[date] = []
 
     self.classes[date].append(data)
 
-  def add_classes(self, classes: dict[datetime.date, list[class_data]]) -> None:
+  def add_classes(self, classes: dict[datetime.date, list[ClassData]]) -> None:
     if classes is None:
       return
 
@@ -176,9 +177,9 @@ class result_data:
       else:
         self.classes[date] = copy(classes[date])
 
-  def get_data(self, query: query_data) -> 'result_data':
+  def get_data(self, query: QueryData) -> 'ResultData':
     if self.classes is None:
-      return result_data()
+      return ResultData()
 
     classes = {}
     current_sg_time = datetime.now(pytz.timezone('Asia/Singapore'))
@@ -195,7 +196,7 @@ class result_data:
               continue
 
             query_locations = query.get_studio_locations(class_details.studio)
-            if studio_location.All not in query_locations and class_details.location not in query_locations:
+            if StudioLocation.All not in query_locations and class_details.location not in query_locations:
               continue
 
             is_by_instructor = 'All' in query.studios[class_details.studio].instructors \
@@ -212,7 +213,7 @@ class result_data:
             classes.setdefault(date_to_check, []).append(class_details)
         date_to_check = date_to_check + timedelta(days=1)
 
-    result = result_data(classes)
+    result = ResultData(classes)
     return result
 
   def get_result_str(self) -> str:
@@ -226,9 +227,9 @@ class result_data:
 
       for class_details in sorted(self.classes[date]):
         availability_str = ''
-        if class_details.availability == class_availability.Waitlist:
+        if class_details.availability == ClassAvailability.Waitlist:
           availability_str = '[W] '
-        elif class_details.availability == class_availability.Full:
+        elif class_details.availability == ClassAvailability.Full:
           availability_str = '[F] '
 
         result_str += f'*{availability_str + class_details.time}* - {class_details.name} @ {class_details.location} ({class_details.instructor})\n'
@@ -236,7 +237,7 @@ class result_data:
 
     return result_str
 
-  def __add__(self, other: 'result_data') -> 'result_data':
+  def __add__(self, other: 'ResultData') -> 'ResultData':
     result = self
     result.add_classes(other.classes)
     return result
