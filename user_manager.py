@@ -1,10 +1,10 @@
-from common.data_types import QueryData
+from common.data_types import StudioType, QueryData
 
-class QueryManager:
+class UserManager:
   def __init__(self):
     self.user_query_data = {}
 
-  def reset_query(self, user_id, chat_id):
+  def reset_query_data(self, user_id, chat_id):
     self.user_query_data[(user_id, chat_id)] = QueryData(studios={}, current_studio=StudioType.Null, weeks=0, days=[])
 
   def update_query_data_current_studio(self, user_id, chat_id, current_studio):
@@ -15,6 +15,9 @@ class QueryManager:
 
   def update_query_data_days(self, user_id, chat_id, days):
     self.user_query_data[(user_id, chat_id)].days = days
+
+  def update_query_data_weeks(self, user_id, chat_id, weeks):
+    self.user_query_data[(user_id, chat_id)].weeks = weeks
 
   def get_query_data(self, user_id, chat_id):
     return self.user_query_data[(user_id, chat_id)]
