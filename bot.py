@@ -4,6 +4,8 @@ import barrys
 import os
 import rev
 import telebot
+import time
+import threading
 import schedule
 from absolute.absolute import get_absolute_schedule
 from absolute.data import PILATES_INSTRUCTOR_NAMES as ABSOLUTE_PILATES_INSTRUCTOR_NAMES
@@ -630,14 +632,29 @@ def instructors_handler(user_id: int, message: telebot.types.Message) -> None:
 
 def update_cached_result_data() -> None:
   global CACHED_RESULT_DATA
+  print('Updating cached result data...')
   CACHED_RESULT_DATA = get_absolute_schedule(locations=[StudioLocation.All], weeks=2, days=['All'], instructors=['All'])
   CACHED_RESULT_DATA += get_ally_schedule(weeks=2, days=['All'], instructors=['All'])
   CACHED_RESULT_DATA += get_barrys_schedule(locations=[StudioLocation.All], weeks=3, days=['All'], instructors=['All'])
   CACHED_RESULT_DATA += get_rev_schedule(locations=[StudioLocation.All], weeks=4, days=['All'], instructors=['All'])
+  print('Successfully updated cached result data!')
 
-print('Starting bot...')
-update_cached_result_data()
-schedule.every().day.at("00:00").do(update_cached_result_data)
-print('Bot started!')
+def schedule_update_cached_result_data(stop_event) -> None:
+  schedule.every().day.at("00:00").do(update_cached_result_data)
+  while not stop_event.is_set():
+    schedule.run_pending()
+    time.sleep(1)
 
-BOT.infinity_polling()
+if __name__ =="__main__":
+  stop_event = threading.Event()
+  update_schedule_thread = threading.Thread(target=schedule_update_cached_result_data, args=[stop_event])
+  update_schedule_thread.start()
+
+  print('Starting bot...')
+  update_cached_result_data()
+  print('Bot started!')
+
+  BOT.infinity_polling()
+
+  stop_event.set()
+  update_schedule_thread.join()
