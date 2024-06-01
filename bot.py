@@ -13,7 +13,6 @@ from ally.data import PILATES_INSTRUCTOR_NAMES as ALLY_PILATES_INSTRUCTOR_NAMES
 from ally.data import SPIN_INSTRUCTOR_NAMES as ALLY_SPIN_INSTRUCTOR_NAMES
 from barrys.barrys import get_barrys_schedule
 from barrys.data import INSTRUCTOR_NAMES as BARRYS_INSTRUCTOR_NAMES
-from common.bot_utils import get_default_days_buttons_map, get_default_studios_locations_buttons_map
 from common.data_types import QueryData, ResultData, SORTED_DAYS, StudioData, StudioLocation, STUDIO_LOCATIONS_MAP, StudioType
 from copy import copy
 from rev.data import INSTRUCTOR_NAMES as REV_INSTRUCTOR_NAMES
@@ -31,58 +30,40 @@ BOT.set_my_commands([START_COMMAND, NERD_COMMAND, INSTRUCTORS_COMMAND])
 USER_MANAGER = UserManager()
 CACHED_RESULT_DATA = ResultData()
 
-# Locations buttons
-LOCATIONS_SELECTION_MESSAGE = None
-LOCATIONS_SELECT_ALL_BUTTON = telebot.types.InlineKeyboardButton('Select All', callback_data='{"locations": "All", "step": "locations"}')
-LOCATIONS_UNSELECT_ALL_BUTTON = telebot.types.InlineKeyboardButton('Unselect All', callback_data='{"locations": "Null", "step": "locations"}')
-LOCATIONS_SELECT_MORE_STUDIOS_BUTTON = telebot.types.InlineKeyboardButton('◀️ Select More', callback_data='{"step": "locations-select-more-studios"}')
-LOCATIONS_NEXT_BUTTON = telebot.types.InlineKeyboardButton('Next ▶️', callback_data='{"step": "studios-next"}')
-
-# Locations buttons map
-STUDIOS_LOCATIONS_BUTTONS_MAP = get_default_studios_locations_buttons_map()
-
-# Days buttons
-DAYS_SELECTION_MESSAGE = None
-DAYS_SELECT_ALL_BUTTON = telebot.types.InlineKeyboardButton('Select All', callback_data='{"days": "All", "step": "days"}')
-DAYS_UNSELECT_ALL_BUTTON = telebot.types.InlineKeyboardButton('Unselect All', callback_data='{"days": "None", "step": "days"}')
-DAYS_BACK_BUTTON = telebot.types.InlineKeyboardButton('◀️ Back', callback_data='{"step": "days-back"}')
-DAYS_NEXT_BUTTON = telebot.types.InlineKeyboardButton('Next ▶️', callback_data='{"step": "days-next"}')
-
-# Days buttons map
-DAYS_BUTTONS_MAP = get_default_days_buttons_map()
-
 def get_locations_keyboard(user_id: int, chat_id: int) -> telebot.types.InlineKeyboardMarkup:
   query_data = USER_MANAGER.get_query_data(user_id, chat_id)
+  button_data = USER_MANAGER.get_button_data(user_id, chat_id)
   locations_keyboard = telebot.types.InlineKeyboardMarkup()
   if query_data.current_studio == 'Rev':
-    locations_keyboard.add(STUDIOS_LOCATIONS_BUTTONS_MAP['Rev']['Bugis'], STUDIOS_LOCATIONS_BUTTONS_MAP['Rev']['Orchard'])
-    locations_keyboard.add(STUDIOS_LOCATIONS_BUTTONS_MAP['Rev']['Suntec'], STUDIOS_LOCATIONS_BUTTONS_MAP['Rev']['TJPG'])
+    locations_keyboard.add(button_data.studios_locations_buttons_map['Rev']['Bugis'], button_data.studios_locations_buttons_map['Rev']['Orchard'])
+    locations_keyboard.add(button_data.studios_locations_buttons_map['Rev']['Suntec'], button_data.studios_locations_buttons_map['Rev']['TJPG'])
   elif query_data.current_studio == 'Barrys':
-    locations_keyboard.add(STUDIOS_LOCATIONS_BUTTONS_MAP['Barrys']['Orchard'], STUDIOS_LOCATIONS_BUTTONS_MAP['Barrys']['Raffles'])
+    locations_keyboard.add(button_data.studios_locations_buttons_map['Barrys']['Orchard'], button_data.studios_locations_buttons_map['Barrys']['Raffles'])
   elif query_data.current_studio == 'Absolute (Spin)':
-    locations_keyboard.add(STUDIOS_LOCATIONS_BUTTONS_MAP['Absolute (Spin)']['Centrepoint'], STUDIOS_LOCATIONS_BUTTONS_MAP['Absolute (Spin)']['i12'])
-    locations_keyboard.add(STUDIOS_LOCATIONS_BUTTONS_MAP['Absolute (Spin)']['Star Vista'], STUDIOS_LOCATIONS_BUTTONS_MAP['Absolute (Spin)']['Raffles'])
-    locations_keyboard.add(STUDIOS_LOCATIONS_BUTTONS_MAP['Absolute (Spin)']['Millenia Walk'])
+    locations_keyboard.add(button_data.studios_locations_buttons_map['Absolute (Spin)']['Centrepoint'], button_data.studios_locations_buttons_map['Absolute (Spin)']['i12'])
+    locations_keyboard.add(button_data.studios_locations_buttons_map['Absolute (Spin)']['Star Vista'], button_data.studios_locations_buttons_map['Absolute (Spin)']['Raffles'])
+    locations_keyboard.add(button_data.studios_locations_buttons_map['Absolute (Spin)']['Millenia Walk'])
   elif query_data.current_studio == 'Absolute (Pilates)':
-    locations_keyboard.add(STUDIOS_LOCATIONS_BUTTONS_MAP['Absolute (Pilates)']['Centrepoint'], STUDIOS_LOCATIONS_BUTTONS_MAP['Absolute (Pilates)']['i12'])
-    locations_keyboard.add(STUDIOS_LOCATIONS_BUTTONS_MAP['Absolute (Pilates)']['Star Vista'], STUDIOS_LOCATIONS_BUTTONS_MAP['Absolute (Pilates)']['Raffles'])
-    locations_keyboard.add(STUDIOS_LOCATIONS_BUTTONS_MAP['Absolute (Pilates)']['Great World'])
+    locations_keyboard.add(button_data.studios_locations_buttons_map['Absolute (Pilates)']['Centrepoint'], button_data.studios_locations_buttons_map['Absolute (Pilates)']['i12'])
+    locations_keyboard.add(button_data.studios_locations_buttons_map['Absolute (Pilates)']['Star Vista'], button_data.studios_locations_buttons_map['Absolute (Pilates)']['Raffles'])
+    locations_keyboard.add(button_data.studios_locations_buttons_map['Absolute (Pilates)']['Great World'])
   elif query_data.current_studio == 'Ally (Spin)':
-    locations_keyboard.add(STUDIOS_LOCATIONS_BUTTONS_MAP['Ally (Spin)']['Cross Street'])
+    locations_keyboard.add(button_data.studios_locations_buttons_map['Ally (Spin)']['Cross Street'])
   elif query_data.current_studio == 'Ally (Pilates)':
-    locations_keyboard.add(STUDIOS_LOCATIONS_BUTTONS_MAP['Ally (Pilates)']['Cross Street'])
-  locations_keyboard.add(LOCATIONS_SELECT_ALL_BUTTON, LOCATIONS_UNSELECT_ALL_BUTTON)
-  locations_keyboard.add(LOCATIONS_SELECT_MORE_STUDIOS_BUTTON, LOCATIONS_NEXT_BUTTON)
+    locations_keyboard.add(button_data.studios_locations_buttons_map['Ally (Pilates)']['Cross Street'])
+  locations_keyboard.add(button_data.locations_select_all_button, button_data.locations_unselect_all_button)
+  locations_keyboard.add(button_data.locations_select_more_studios_button, button_data.locations_next_button)
   return locations_keyboard
 
-def get_days_keyboard() -> telebot.types.InlineKeyboardMarkup:
+def get_days_keyboard(user_id: int, chat_id: int) -> telebot.types.InlineKeyboardMarkup:
+  button_data = USER_MANAGER.get_button_data(user_id, chat_id)
   days_keyboard = telebot.types.InlineKeyboardMarkup()
-  days_keyboard.add(DAYS_BUTTONS_MAP['Monday'], DAYS_BUTTONS_MAP['Tuesday'])
-  days_keyboard.add(DAYS_BUTTONS_MAP['Wednesday'], DAYS_BUTTONS_MAP['Thursday'])
-  days_keyboard.add(DAYS_BUTTONS_MAP['Friday'], DAYS_BUTTONS_MAP['Saturday'])
-  days_keyboard.add(DAYS_BUTTONS_MAP['Sunday'])
-  days_keyboard.add(DAYS_SELECT_ALL_BUTTON, DAYS_UNSELECT_ALL_BUTTON)
-  days_keyboard.add(DAYS_BACK_BUTTON, DAYS_NEXT_BUTTON)
+  days_keyboard.add(button_data.days_buttons_map['Monday'], button_data.days_buttons_map['Tuesday'])
+  days_keyboard.add(button_data.days_buttons_map['Wednesday'], button_data.days_buttons_map['Thursday'])
+  days_keyboard.add(button_data.days_buttons_map['Friday'], button_data.days_buttons_map['Saturday'])
+  days_keyboard.add(button_data.days_buttons_map['Sunday'])
+  days_keyboard.add(button_data.days_select_all_button, button_data.days_unselect_all_button)
+  days_keyboard.add(button_data.days_back_button, button_data.days_next_button)
   return days_keyboard
 
 def send_results(query: telebot.types.CallbackQuery) -> None:
@@ -114,17 +95,12 @@ def studios_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
   query_data_dict = eval(query.data)
   studio_selected = query_data_dict['studios']
   if studio_selected == 'All':
-    USER_MANAGER.update_query_data_studios(query.from_user.id, query.message.chat.id, {
-      'Rev': StudioData(locations=STUDIO_LOCATIONS_MAP[StudioType.Rev]),
-      'Barrys': StudioData(locations=STUDIO_LOCATIONS_MAP[StudioType.Barrys]),
-      'Absolute (Spin)': StudioData(locations=STUDIO_LOCATIONS_MAP[StudioType.AbsoluteSpin]),
-      'Absolute (Pilates)': StudioData(locations=STUDIO_LOCATIONS_MAP[StudioType.AbsolutePilates]),
-      'Ally (Spin)': StudioData(locations=STUDIO_LOCATIONS_MAP[StudioType.AllySpin]),
-      'Ally (Pilates)': StudioData(locations=STUDIO_LOCATIONS_MAP[StudioType.AllyPilates]),
-    })
+    USER_MANAGER.update_query_data_select_all_studios(query.from_user.id, query.message.chat.id)
+    USER_MANAGER.update_button_data_select_all_studios_locations_buttons_map(query.from_user.id, query.message.chat.id)
     studios_handler(query.from_user.id, query.message)
   elif studio_selected == 'None':
     USER_MANAGER.update_query_data_studios(query.from_user.id, query.message.chat.id, {})
+    USER_MANAGER.reset_button_data_studios_locations_buttons_map(query.from_user.id, query.message.chat.id)
     studios_handler(query.from_user.id, query.message)
   else:
     USER_MANAGER.update_query_data_current_studio(query.from_user.id, query.message.chat.id, studio_selected)
@@ -132,18 +108,20 @@ def studios_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
 
 @BOT.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'locations')
 def locations_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
-  global STUDIOS_LOCATIONS_BUTTONS_MAP
   query_data = USER_MANAGER.get_query_data(query.from_user.id, query.message.chat.id)
+  button_data = USER_MANAGER.get_button_data(query.from_user.id, query.message.chat.id)
   query_data_dict = eval(query.data)
   selected_studio_location = StudioLocation[query_data_dict['locations']]
   if selected_studio_location == StudioLocation.Null:
-    for location in STUDIOS_LOCATIONS_BUTTONS_MAP[query_data.current_studio]:
-      STUDIOS_LOCATIONS_BUTTONS_MAP[query_data.current_studio][location] = telebot.types.InlineKeyboardButton(location, callback_data=STUDIOS_LOCATIONS_BUTTONS_MAP[query_data.current_studio][location].callback_data)
+    for location in button_data.studios_locations_buttons_map[query_data.current_studio]:
+      button_data.studios_locations_buttons_map[query_data.current_studio][location] = telebot.types.InlineKeyboardButton(location, callback_data=button_data.studios_locations_buttons_map[query_data.current_studio][location].callback_data)
+    USER_MANAGER.update_button_data_studios_locations_buttons_map(query.from_user.id, query.message.chat.id, button_data.studios_locations_buttons_map)
     query_data.studios.pop(query_data.current_studio)
     USER_MANAGER.update_query_data_studios(query.from_user.id, query.message.chat.id, query_data.studios)
   elif selected_studio_location == StudioLocation.All:
-    for location in STUDIOS_LOCATIONS_BUTTONS_MAP[query_data.current_studio]:
-      STUDIOS_LOCATIONS_BUTTONS_MAP[query_data.current_studio][location] = telebot.types.InlineKeyboardButton(location + ' ✅', callback_data=STUDIOS_LOCATIONS_BUTTONS_MAP[query_data.current_studio][location].callback_data)
+    for location in button_data.studios_locations_buttons_map[query_data.current_studio]:
+      button_data.studios_locations_buttons_map[query_data.current_studio][location] = telebot.types.InlineKeyboardButton(location + ' ✅', callback_data=button_data.studios_locations_buttons_map[query_data.current_studio][location].callback_data)
+    USER_MANAGER.update_button_data_studios_locations_buttons_map(query.from_user.id, query.message.chat.id, button_data.studios_locations_buttons_map)
     if query_data.current_studio not in query_data.studios:
       new_studio = {query_data.current_studio: StudioData(locations=copy(STUDIO_LOCATIONS_MAP[query_data.current_studio]))}
       query_data.studios = {**query_data.studios, **new_studio}
@@ -153,34 +131,36 @@ def locations_callback_query_handler(query: telebot.types.CallbackQuery) -> None
       USER_MANAGER.update_query_data_studios(query.from_user.id, query.message.chat.id, query_data.studios)
   else:
     if query_data.current_studio not in query_data.studios:
-      STUDIOS_LOCATIONS_BUTTONS_MAP[query_data.current_studio][selected_studio_location] = \
+      button_data.studios_locations_buttons_map[query_data.current_studio][selected_studio_location] = \
         telebot.types.InlineKeyboardButton(
           selected_studio_location + ' ✅',
-          callback_data=STUDIOS_LOCATIONS_BUTTONS_MAP[query_data.current_studio][selected_studio_location].callback_data)
+          callback_data=button_data.studios_locations_buttons_map[query_data.current_studio][selected_studio_location].callback_data)
+      USER_MANAGER.update_button_data_studios_locations_buttons_map(query.from_user.id, query.message.chat.id, button_data.studios_locations_buttons_map)
       new_studio = {query_data.current_studio: StudioData(locations=[selected_studio_location])}
       query_data.studios = {**query_data.studios, **new_studio}
       USER_MANAGER.update_query_data_studios(query.from_user.id, query.message.chat.id, query_data.studios)
     elif selected_studio_location in query_data.studios[query_data.current_studio].locations:
-      STUDIOS_LOCATIONS_BUTTONS_MAP[query_data.current_studio][selected_studio_location] = \
+      button_data.studios_locations_buttons_map[query_data.current_studio][selected_studio_location] = \
         telebot.types.InlineKeyboardButton(
           selected_studio_location,
-          callback_data=STUDIOS_LOCATIONS_BUTTONS_MAP[query_data.current_studio][selected_studio_location].callback_data)
+          callback_data=button_data.studios_locations_buttons_map[query_data.current_studio][selected_studio_location].callback_data)
+      USER_MANAGER.update_button_data_studios_locations_buttons_map(query.from_user.id, query.message.chat.id, button_data.studios_locations_buttons_map)
       query_data.studios[query_data.current_studio].locations.remove(selected_studio_location)
       if len(query_data.studios[query_data.current_studio].locations) == 0:
         query_data.studios.pop(query_data.current_studio)
       USER_MANAGER.update_query_data_studios(query.from_user.id, query.message.chat.id, query_data.studios)
     else:
-      STUDIOS_LOCATIONS_BUTTONS_MAP[query_data.current_studio][selected_studio_location] = telebot.types.InlineKeyboardButton(selected_studio_location + ' ✅', callback_data=STUDIOS_LOCATIONS_BUTTONS_MAP[query_data.current_studio][selected_studio_location].callback_data)
+      button_data.studios_locations_buttons_map[query_data.current_studio][selected_studio_location] = telebot.types.InlineKeyboardButton(selected_studio_location + ' ✅', callback_data=button_data.studios_locations_buttons_map[query_data.current_studio][selected_studio_location].callback_data)
+      USER_MANAGER.update_button_data_studios_locations_buttons_map(query.from_user.id, query.message.chat.id, button_data.studios_locations_buttons_map)
       query_data.studios[query_data.current_studio].locations.append(selected_studio_location)
       USER_MANAGER.update_query_data_studios(query.from_user.id, query.message.chat.id, query_data.studios)
 
   text = query_data.get_query_str(include_studio=True)
   text += '*Select the location(s) to check*'
 
-  global LOCATIONS_SELECTION_MESSAGE
   BOT.edit_message_text(
-    chat_id=LOCATIONS_SELECTION_MESSAGE.chat.id,
-    message_id=LOCATIONS_SELECTION_MESSAGE.id,
+    chat_id=button_data.locations_selection_message.chat.id,
+    message_id=button_data.locations_selection_message.id,
     text=text,
     reply_markup=get_locations_keyboard(query.from_user.id, query.message.chat.id),
     parse_mode='Markdown')
@@ -211,24 +191,29 @@ def weeks_back_callback_query_handler(query: telebot.types.CallbackQuery) -> Non
 
 @BOT.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'days')
 def days_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
+  button_data = USER_MANAGER.get_button_data(query.from_user.id, query.message.chat.id)
   query_data_dict = eval(query.data)
   selected_day = query_data_dict['days']
   if selected_day == 'None':
-    for day in DAYS_BUTTONS_MAP:
-      DAYS_BUTTONS_MAP[day] = telebot.types.InlineKeyboardButton(day, callback_data=DAYS_BUTTONS_MAP[day].callback_data)
+    for day in button_data.days_buttons_map:
+      button_data.days_buttons_map[day] = telebot.types.InlineKeyboardButton(day, callback_data=button_data.days_buttons_map[day].callback_data)
+    USER_MANAGER.update_button_data_days_buttons_map(query.from_user.id, query.message.chat.id, button_data.days_buttons_map)
     USER_MANAGER.update_query_data_days(query.from_user.id, query.message.chat.id, [])
   elif selected_day == 'All':
-    for day in DAYS_BUTTONS_MAP:
-      DAYS_BUTTONS_MAP[day] = telebot.types.InlineKeyboardButton(day + ' ✅', callback_data=DAYS_BUTTONS_MAP[day].callback_data)
+    for day in button_data.days_buttons_map:
+      button_data.days_buttons_map[day] = telebot.types.InlineKeyboardButton(day + ' ✅', callback_data=button_data.days_buttons_map[day].callback_data)
+    USER_MANAGER.update_button_data_days_buttons_map(query.from_user.id, query.message.chat.id, button_data.days_buttons_map)
     USER_MANAGER.update_query_data_days(query.from_user.id, query.message.chat.id, SORTED_DAYS)
   else:
     query_data = USER_MANAGER.get_query_data(query.from_user.id, query.message.chat.id)
     if selected_day in query_data.days:
-      DAYS_BUTTONS_MAP[selected_day] = telebot.types.InlineKeyboardButton(selected_day, callback_data=DAYS_BUTTONS_MAP[selected_day].callback_data)
+      button_data.days_buttons_map[selected_day] = telebot.types.InlineKeyboardButton(selected_day, callback_data=button_data.days_buttons_map[selected_day].callback_data)
+      USER_MANAGER.update_button_data_days_buttons_map(query.from_user.id, query.message.chat.id, button_data.days_buttons_map)
       query_data.days.remove(selected_day)
       USER_MANAGER.update_query_data_days(query.from_user.id, query.message.chat.id, query_data.days)
     else:
-      DAYS_BUTTONS_MAP[selected_day] = telebot.types.InlineKeyboardButton(selected_day + ' ✅', callback_data=DAYS_BUTTONS_MAP[selected_day].callback_data)
+      button_data.days_buttons_map[selected_day] = telebot.types.InlineKeyboardButton(selected_day + ' ✅', callback_data=button_data.days_buttons_map[selected_day].callback_data)
+      USER_MANAGER.update_button_data_days_buttons_map(query.from_user.id, query.message.chat.id, button_data.days_buttons_map)
       query_data.days.append(selected_day)
       query_data.days = sorted(query_data.days, key=SORTED_DAYS.index)
       USER_MANAGER.update_query_data_days(query.from_user.id, query.message.chat.id, query_data.days)
@@ -237,12 +222,12 @@ def days_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
   text = query_data.get_query_str(include_studio=True, include_instructors=True, include_weeks=True, include_days=True)
   text += '*Select the day(s) to show classes of*'
 
-  global DAYS_SELECTION_MESSAGE
+  button_data = USER_MANAGER.get_button_data(query.from_user.id, query.message.chat.id)
   BOT.edit_message_text(
-    chat_id=DAYS_SELECTION_MESSAGE.chat.id,
-    message_id=DAYS_SELECTION_MESSAGE.id,
+    chat_id=button_data.days_selection_message.chat.id,
+    message_id=button_data.days_selection_message.id,
     text=text,
-    reply_markup=get_days_keyboard(),
+    reply_markup=get_days_keyboard(query.from_user.id, query.message.chat.id),
     parse_mode='Markdown')
 
 @BOT.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'days-back')
@@ -365,10 +350,8 @@ def instructors_back_callback_query_handler(query: telebot.types.CallbackQuery) 
 
 @BOT.message_handler(commands=['start'])
 def start_handler(message: telebot.types.Message) -> None:
-  global STUDIOS_LOCATIONS_BUTTONS_MAP
   USER_MANAGER.reset_query_data(message.from_user.id, message.chat.id)
-  STUDIOS_LOCATIONS_BUTTONS_MAP = get_default_studios_locations_buttons_map()
-  DAYS_BUTTONS_MAP = get_default_days_buttons_map()
+  USER_MANAGER.reset_button_data(message.from_user.id, message.chat.id)
   studios_handler(message.from_user.id, message)
 
 def studios_handler(user_id: int, message: telebot.types.Message) -> None:
@@ -582,9 +565,9 @@ def locations_handler(user_id: int, message: telebot.types.Message):
   text = query_data.get_query_str(include_studio=True)
   text += '*Select the location(s) to check*'
 
-  global LOCATIONS_SELECTION_MESSAGE
-  LOCATIONS_SELECTION_MESSAGE = BOT.send_message(
+  sent_msg = BOT.send_message(
     message.chat.id, text, reply_markup=get_locations_keyboard(user_id, message.chat.id), parse_mode='Markdown')
+  USER_MANAGER.update_button_data_locations_selection_message(user_id, message.chat.id, sent_msg)
 
 def weeks_handler(user_id: int, message: telebot.types.Message) -> None:
   query_data = USER_MANAGER.get_query_data(user_id, message.chat.id)
@@ -605,14 +588,13 @@ def weeks_handler(user_id: int, message: telebot.types.Message) -> None:
   sent_msg = BOT.send_message(message.chat.id, text, reply_markup=keyboard, parse_mode='Markdown')
 
 def days_handler(user_id: int, message: telebot.types.Message) -> None:
-  global DAYS_BUTTONS_MAP
   query_data = USER_MANAGER.get_query_data(user_id, message.chat.id)
   text = query_data.get_query_str(include_studio=True, include_instructors=True, include_weeks=True, include_days=True)
   text += '*Select the day(s) to show classes of*'
-  DAYS_BUTTONS_MAP = get_default_days_buttons_map()
+  USER_MANAGER.reset_button_data_days_buttons_map(user_id, message.chat.id)
 
-  global DAYS_SELECTION_MESSAGE
-  DAYS_SELECTION_MESSAGE = BOT.send_message(message.chat.id, text, reply_markup=get_days_keyboard(), parse_mode='Markdown')
+  sent_msg = BOT.send_message(message.chat.id, text, reply_markup=get_days_keyboard(user_id, message.chat.id), parse_mode='Markdown')
+  USER_MANAGER.update_button_data_days_selection_message(user_id, message.chat.id, sent_msg)
 
 def instructors_handler(user_id: int, message: telebot.types.Message) -> None:
   query_data = USER_MANAGER.get_query_data(user_id, message.chat.id)
