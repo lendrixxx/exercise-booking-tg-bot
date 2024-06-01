@@ -1,6 +1,7 @@
 import absolute
 import ally
 import barrys
+import logging
 import os
 import rev
 import telebot
@@ -22,6 +23,11 @@ from rev.rev import get_rev_schedule
 from user_manager import UserManager
 
 # Global variables
+LOGGER = logging.getLogger(__name__)
+logging.basicConfig(
+  format='%(asctime)s %(filename)s:%(lineno)d [%(levelname)-1s] %(message)s',
+  level=logging.INFO,
+  datefmt='%d-%m-%Y %H:%M:%S')
 BOT_TOKEN = os.environ.get('BOT_TOKEN')
 BOT = telebot.TeleBot(BOT_TOKEN)
 START_COMMAND = telebot.types.BotCommand(command='start', description='Check schedules')
@@ -632,12 +638,12 @@ def instructors_handler(user_id: int, message: telebot.types.Message) -> None:
 
 def update_cached_result_data() -> None:
   global CACHED_RESULT_DATA
-  print('Updating cached result data...')
+  LOGGER.info('Updating cached result data...')
   CACHED_RESULT_DATA = get_absolute_schedule(locations=[StudioLocation.All], weeks=2, days=['All'], instructors=['All'])
   CACHED_RESULT_DATA += get_ally_schedule(weeks=2, days=['All'], instructors=['All'])
   CACHED_RESULT_DATA += get_barrys_schedule(locations=[StudioLocation.All], weeks=3, days=['All'], instructors=['All'])
   CACHED_RESULT_DATA += get_rev_schedule(locations=[StudioLocation.All], weeks=4, days=['All'], instructors=['All'])
-  print('Successfully updated cached result data!')
+  LOGGER.info('Successfully updated cached result data!')
 
 def schedule_update_cached_result_data(stop_event) -> None:
   schedule.every().day.at("00:00").do(update_cached_result_data)
@@ -650,9 +656,9 @@ if __name__ =="__main__":
   update_schedule_thread = threading.Thread(target=schedule_update_cached_result_data, args=[stop_event])
   update_schedule_thread.start()
 
-  print('Starting bot...')
+  LOGGER.info('Starting bot...')
   update_cached_result_data()
-  print('Bot started!')
+  LOGGER.info('Bot started!')
 
   BOT.infinity_polling()
 
