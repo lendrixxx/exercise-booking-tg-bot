@@ -343,7 +343,6 @@ def instructors_input_handler(message: telebot.types.Message, user_id: int, inst
 
 @BOT.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'instructors-next')
 def instructors_next_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
-  global CACHED_RESULT_DATA
   query_data = USER_MANAGER.get_query_data(query.from_user.id, query.message.chat.id)
   if not query_data.has_instructors_selected():
     text = 'Please select at least one instructor'
@@ -559,15 +558,6 @@ def nerd_input_handler(message: telebot.types.Message) -> None:
   else:
     BOT.send_message(message.chat.id, schedule_str, parse_mode='Markdown')
 
-
-@BOT.message_handler(commands=['refresh'])
-def refresh_handler(message: telebot.types.Message) -> None:
-  text = 'Updating cached schedules...'
-  sent_msg = BOT.send_message(message.chat.id, text, parse_mode='Markdown')
-  update_cached_result_data()
-  text = 'Finished updating schedules'
-  sent_msg = BOT.send_message(message.chat.id, text, parse_mode='Markdown')
-
 def locations_handler(user_id: int, message: telebot.types.Message):
   query_data = USER_MANAGER.get_query_data(user_id, message.chat.id)
   text = query_data.get_query_str(include_studio=True)
@@ -637,12 +627,13 @@ def instructors_handler(user_id: int, message: telebot.types.Message) -> None:
   sent_msg = BOT.send_message(message.chat.id, text, reply_markup=keyboard, parse_mode='Markdown')
 
 def update_cached_result_data() -> None:
-  global CACHED_RESULT_DATA
   LOGGER.info('Updating cached result data...')
-  CACHED_RESULT_DATA = get_absolute_schedule(locations=[StudioLocation.All], weeks=2, days=['All'], instructors=['All'])
-  CACHED_RESULT_DATA += get_ally_schedule(weeks=2, days=['All'], instructors=['All'])
-  CACHED_RESULT_DATA += get_barrys_schedule(locations=[StudioLocation.All], weeks=3, days=['All'], instructors=['All'])
-  CACHED_RESULT_DATA += get_rev_schedule(locations=[StudioLocation.All], weeks=4, days=['All'], instructors=['All'])
+  updated_cached_result_data = get_absolute_schedule(locations=[StudioLocation.All], weeks=2, days=['All'], instructors=['All'])
+  updated_cached_result_data += get_ally_schedule(weeks=2, days=['All'], instructors=['All'])
+  updated_cached_result_data += get_barrys_schedule(locations=[StudioLocation.All], weeks=3, days=['All'], instructors=['All'])
+  updated_cached_result_data += get_rev_schedule(locations=[StudioLocation.All], weeks=4, days=['All'], instructors=['All'])
+  global CACHED_RESULT_DATA
+  CACHED_RESULT_DATA = updated_cached_result_data
   LOGGER.info('Successfully updated cached result data!')
 
 def schedule_update_cached_result_data(stop_event) -> None:
