@@ -10,28 +10,28 @@ from absolute.data import INSTRUCTORID_MAP, LOCATION_MAP, LOCATION_STR_MAP
 LOGGER = logging.getLogger(__name__)
 
 def send_get_schedule_request(locations: list[StudioLocation], week: int, instructor: str):
-    url = 'https://absoluteboutiquefitness.zingfit.com/reserve/index.cfm?action=Reserve.chooseClass'
-    params = {'wk': week}
+  url = 'https://absoluteboutiquefitness.zingfit.com/reserve/index.cfm?action=Reserve.chooseClass'
+  params = {'wk': week}
 
-    if 'All' in locations:
-      params = {**params, **{'site': 1, 'site2': 2, 'site3': 3, 'site4': 5, 'site5': 6, 'site6': 8}}
-    else:
-      site_param_name = 'site'
-      for location in locations:
-        params[site_param_name] = LOCATION_MAP[location]
-        if site_param_name == 'site':
-          site_param_name = 'site2'
-        elif site_param_name != 'site6':
-          site_param_name = site_param_name[:-1] + str(int(site_param_name[-1]) + 1)
-        else:
-          break
+  if 'All' in locations:
+    params = {**params, **{'site': 1, 'site2': 2, 'site3': 3, 'site4': 5, 'site5': 6, 'site6': 8}}
+  else:
+    site_param_name = 'site'
+    for location in locations:
+      params[site_param_name] = LOCATION_MAP[location]
+      if site_param_name == 'site':
+        site_param_name = 'site2'
+      elif site_param_name != 'site6':
+        site_param_name = site_param_name[:-1] + str(int(site_param_name[-1]) + 1)
+      else:
+        break
 
-    if instructor != 'All':
-      params = {**params, **{'instructorid': INSTRUCTORID_MAP[instructor]}}
+  if instructor != 'All':
+    params = {**params, **{'instructorid': INSTRUCTORID_MAP[instructor]}}
 
-    return requests.get(url=url, params=params)
+  return requests.get(url=url, params=params)
 
-def parse_get_schedule_response(response, week: int, days: list[str]) -> dict[datetime.date, list[ClassData]]:
+def parse_get_schedule_response(response: requests.models.Response, locations: list[StudioLocation], week: int, days: list[str]) -> dict[datetime.date, list[ClassData]]:
   soup = BeautifulSoup(response.text, 'html.parser')
   reserve_table_list = [table for table in soup.find_all('table') if table.get('id') == 'reserve']
   reserve_table_list_len = len(reserve_table_list)
@@ -83,10 +83,14 @@ def parse_get_schedule_response(response, week: int, days: list[str]) -> dict[da
           continue
 
         reserve_table_data_div_span_class = reserve_table_data_div_span_class_list[0]
-        if reserve_table_data_div_span_class == 'scheduleSite':
+        # scheduleSite span class is only provided if request has multiple locations
+        if len(locations) == 1:
+          class_details.location = locations[0]
+        elif reserve_table_data_div_span_class == 'scheduleSite':
           location_str = str(reserve_table_data_div_span.contents[0].strip())
           class_details.location = LOCATION_STR_MAP[location_str]
-        elif reserve_table_data_div_span_class == 'scheduleClass':
+
+        if reserve_table_data_div_span_class == 'scheduleClass':
           class_details.name = str(reserve_table_data_div_span.contents[0].strip())
         elif reserve_table_data_div_span_class == 'scheduleInstruc':
           class_details.instructor = str(reserve_table_data_div_span.contents[0].strip())
@@ -110,7 +114,7 @@ def get_absolute_schedule(locations: list[StudioLocation], weeks: int, days: lis
       # REST API can only select one week at a time
       for week in range(0, weeks):
         get_schedule_response = send_get_schedule_request(locations=locations, instructor=instructor, week=week)
-        date_class_data_list_dict = parse_get_schedule_response(get_schedule_response, week=week, days=days)
+        date_class_data_list_dict = parse_get_schedule_response(response=get_schedule_response, locations=locations, week=week, days=days)
         output_result.add_classes(date_class_data_list_dict)
 
   result = ResultData()
