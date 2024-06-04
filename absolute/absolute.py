@@ -118,7 +118,7 @@ def get_absolute_schedule(locations: list[StudioLocation], weeks: int, days: lis
         output_result.add_classes(date_class_data_list_dict)
 
   result = ResultData()
-  # REST API can only select maximum of 5 locations at a , but there are 6 locations
+  # REST API can only select maximum of 5 locations at a time, but there are 6 locations
   if 'All' in locations:
     location_map_list = list(LOCATION_MAP)
     first_location = location_map_list[0:1]
