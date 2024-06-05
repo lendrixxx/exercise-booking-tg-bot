@@ -191,6 +191,9 @@ def studios_next_callback_query_handler(query: telebot.types.CallbackQuery) -> N
     sent_msg = BOT.send_message(query.message.chat.id, text, parse_mode='Markdown')
     studios_handler(query.from_user.id, query.message)
   else:
+    for studio in query_data.studios:
+      query_data.studios[studio].instructors = ['All']
+    USER_MANAGER.update_query_data_studios(query.from_user.id, query.message.chat.id, query_data.studios)
     instructors_handler(query.from_user.id, query.message)
 
 @BOT.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'weeks')
