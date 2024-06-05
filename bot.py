@@ -91,8 +91,10 @@ def send_results(query: telebot.types.CallbackQuery) -> None:
   if len(schedule_str) > 4095:
     shortened_message = ''
     for line in schedule_str.splitlines():
-      is_new_day = any(day in line for day in SORTED_DAYS) and len(shortened_message) > 0
-      max_len_reached = len(shortened_message) + len(line) > 4095
+      shortened_message_len = len(shortened_message)
+      # String of day is bolded which starts with '*', so we want to check from the second character
+      is_new_day = line[1:].startswith(tuple(SORTED_DAYS)) and shortened_message_len > 0
+      max_len_reached = shortened_message_len + len(line) > 4095
       if is_new_day or max_len_reached:
         BOT.send_message(query.message.chat.id, shortened_message, parse_mode='Markdown')
         shortened_message = line + '\n'
