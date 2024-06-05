@@ -5,34 +5,34 @@ from bs4 import BeautifulSoup
 from common.data_types import ClassAvailability, ClassData, RESPONSE_AVAILABILITY_MAP, ResultData, StudioLocation, StudioType
 from copy import copy
 from datetime import datetime, timedelta
-from rev.data import INSTRUCTORID_MAP, LOCATION_MAP, RESPONSE_LOCATION_TO_STUDIO_LOCATION_MAP
+from rev.data import LOCATION_MAP, RESPONSE_LOCATION_TO_STUDIO_LOCATION_MAP
 
 LOGGER = logging.getLogger(__name__)
 
-def send_get_schedule_request(locations: list[StudioLocation], week: int, instructor: str):
-    url = 'https://rhythmstudios.zingfit.com/reserve/index.cfm?action=Reserve.chooseClass'
-    params = {'wk': week}
+def send_get_schedule_request(locations: list[StudioLocation], week: int, instructor: str, instructorid_map: dict[str, int]) -> requests.models.Response:
+  url = 'https://rhythmstudios.zingfit.com/reserve/index.cfm?action=Reserve.chooseClass'
+  params = {'wk': week}
 
-    if 'All' in locations:
-      params = {**params, **{'site': 2, 'site2': 3, 'site3': 4, 'site4': 5, 'site5': 6}}
-    else:
-      site_param_name = 'site'
-      for location in locations:
-        params[site_param_name] = LOCATION_MAP[location]
-        if site_param_name == 'site':
-          site_param_name = 'site2'
-        elif site_param_name != 'site5':
-          site_param_name = site_param_name[:-1] + str(int(site_param_name[-1]) + 1)
-        else:
-          break
+  if 'All' in locations:
+    params = {**params, **{'site': 2, 'site2': 3, 'site3': 4, 'site4': 5, 'site5': 6}}
+  else:
+    site_param_name = 'site'
+    for location in locations:
+      params[site_param_name] = LOCATION_MAP[location]
+      if site_param_name == 'site':
+        site_param_name = 'site2'
+      elif site_param_name != 'site5':
+        site_param_name = site_param_name[:-1] + str(int(site_param_name[-1]) + 1)
+      else:
+        break
 
-    if instructor != 'All':
-      params = {**params, **{'instructorid': INSTRUCTORID_MAP[instructor]}}
+  if instructor != 'All':
+    params = {**params, **{'instructorid': instructorid_map[instructor]}}
 
-    return requests.get(url=url, params=params)
+  return requests.get(url=url, params=params)
 
 
-def parse_get_schedule_response(response, week: int, days: list[str]) -> dict[datetime.date, list[ClassData]]:
+def parse_get_schedule_response(response: requests.models.Response, week: int, days: list[str]) -> dict[datetime.date, list[ClassData]]:
   soup = BeautifulSoup(response.text, 'html.parser')
   reserve_table_list = [table for table in soup.find_all('table') if table.get('id') == 'reserve']
   reserve_table_list_len = len(reserve_table_list)
@@ -106,14 +106,51 @@ def parse_get_schedule_response(response, week: int, days: list[str]) -> dict[da
 
   return result_dict
 
-def get_rev_schedule(locations: list[StudioLocation], weeks: int, days: str, instructors: list[str]) -> ResultData:
+def get_rev_schedule(locations: list[StudioLocation], weeks: int, days: str, instructors: list[str], instructorid_map: dict[str, int]) -> ResultData:
   result = ResultData()
   # REST API can only select one instructor at a time
   for instructor in instructors:
     # REST API can only select one week at a time
     for week in range(0, weeks):
-      get_schedule_response = send_get_schedule_request(locations=locations, instructor=instructor, week=week)
-      date_class_data_list_dict = parse_get_schedule_response(get_schedule_response, week=week, days=days)
+      get_schedule_response = send_get_schedule_request(locations=locations, instructor=instructor, week=week, instructorid_map=instructorid_map)
+      date_class_data_list_dict = parse_get_schedule_response(response=get_schedule_response, week=week, days=days)
       result.add_classes(date_class_data_list_dict)
 
   return result
+
+def get_instructorid_map() -> dict[str, int]:
+  def _get_instructorid_map_internal(response: requests.models.Response) -> dict[str, int]:
+    soup = BeautifulSoup(response.text, 'html.parser')
+    reserve_filters_list = [list_item for list_item in soup.find_all('ul') if list_item.get('id') == 'reserveFilter']
+    reserve_filters_list_len = len(reserve_filters_list)
+    if reserve_filters_list_len != 1:
+      LOGGER.warning(f'Failed to get list of instructors - Expected 1 reserve filter list, got {reserve_filters_list_len} instead')
+      return {}
+
+    reserve_filters = reserve_filters_list[0]
+    instructor_filter_list = [list_item for list_item in reserve_filters.find_all('li') if list_item.get('id') == 'reserveFilter1']
+    instructor_filter_list_len = len(instructor_filter_list)
+    if instructor_filter_list_len != 1:
+      LOGGER.warning(f'Failed to get list of instructors - Expected 1 instructor filter list, got {instructor_filter_list_len} instead')
+      return {}
+
+    instructorid_map = {}
+    instructorid_prefix = 'instructorid='
+    instructorid_prefix_len = len(instructorid_prefix)
+    instructorid_len = 19
+    for instructor in instructor_filter_list[0].find_all('li'):
+      instructor_name = instructor.string
+      link = instructor.a.get('href')
+      start_pos = link.find('instructorid=')
+      instructorid = link[start_pos + instructorid_prefix_len:start_pos + instructorid_prefix_len + instructorid_len]
+      instructorid_map[instructor_name] = instructorid
+    return instructorid_map
+
+  # REST API can only select one week at a time
+  instructorid_map = {}
+  for week in range(0, 4):
+    get_schedule_response = send_get_schedule_request(locations=['All'], instructor='All', week=week, instructorid_map=None)
+    current_instructorid_map = _get_instructorid_map_internal(response=get_schedule_response)
+    instructorid_map = {**instructorid_map, **current_instructorid_map}
+
+  return instructorid_map

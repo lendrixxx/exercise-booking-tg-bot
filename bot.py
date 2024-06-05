@@ -9,17 +9,15 @@ import time
 import threading
 import schedule
 from absolute.absolute import get_absolute_schedule
-from absolute.data import PILATES_INSTRUCTOR_NAMES as ABSOLUTE_PILATES_INSTRUCTOR_NAMES
-from absolute.data import SPIN_INSTRUCTOR_NAMES as ABSOLUTE_SPIN_INSTRUCTOR_NAMES
+from absolute.absolute import get_instructorid_map as get_absolute_instructorid_map
 from ally.ally import get_ally_schedule
-from ally.data import PILATES_INSTRUCTOR_NAMES as ALLY_PILATES_INSTRUCTOR_NAMES
-from ally.data import SPIN_INSTRUCTOR_NAMES as ALLY_SPIN_INSTRUCTOR_NAMES
+from ally.ally import get_instructorid_map as get_ally_instructorid_map
 from barrys.barrys import get_barrys_schedule
-from barrys.data import INSTRUCTOR_NAMES as BARRYS_INSTRUCTOR_NAMES
+from barrys.barrys import get_instructorid_map as get_barrys_instructorid_map
 from common.data_types import QueryData, ResultData, SORTED_DAYS, StudioData, StudioLocation, STUDIO_LOCATIONS_MAP, StudioType
 from copy import copy
-from rev.data import INSTRUCTOR_NAMES as REV_INSTRUCTOR_NAMES
 from rev.rev import get_rev_schedule
+from rev.rev import get_instructorid_map as get_rev_instructorid_map
 from user_manager import UserManager
 
 # Global variables
@@ -37,6 +35,14 @@ BOT.set_my_commands([START_COMMAND, NERD_COMMAND, INSTRUCTORS_COMMAND])
 
 USER_MANAGER = UserManager()
 CACHED_RESULT_DATA = ResultData()
+ABSOLUTE_INSTRUCTORID_MAP = {}
+ABSOLUTE_INSTRUCTOR_NAMES = []
+ALLY_INSTRUCTORID_MAP = {}
+ALLY_INSTRUCTOR_NAMES = []
+BARRYS_INSTRUCTORID_MAP = {}
+BARRYS_INSTRUCTOR_NAMES = []
+REV_INSTRUCTORID_MAP = {}
+REV_INSTRUCTOR_NAMES = []
 
 def get_locations_keyboard(user_id: int, chat_id: int) -> telebot.types.InlineKeyboardMarkup:
   query_data = USER_MANAGER.get_query_data(user_id, chat_id)
@@ -258,59 +264,56 @@ def rev_instructors_callback_query_handler(query: telebot.types.CallbackQuery) -
   text = 'Enter instructor names separated by a comma\ne.g.: *chloe*, *jerlyn*, *zai*\nEnter "*all*" to check for all instructors'
   USER_MANAGER.update_query_data_current_studio(query.from_user.id, query.message.chat.id, 'Rev')
   sent_msg = BOT.send_message(query.message.chat.id, text, parse_mode='Markdown')
-  BOT.register_next_step_handler(sent_msg, instructors_input_handler, query.from_user.id, rev.data.INSTRUCTORID_MAP)
+  BOT.register_next_step_handler(sent_msg, instructors_input_handler, query.from_user.id, REV_INSTRUCTORID_MAP)
 
 @BOT.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'barrys-instructors')
 def barrys_instructors_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
   text = 'Enter instructor names separated by a comma\ne.g.: *ria*, *gino*\nEnter "*all*" to check for all instructors'
   USER_MANAGER.update_query_data_current_studio(query.from_user.id, query.message.chat.id, 'Barrys')
   sent_msg = BOT.send_message(query.message.chat.id, text, parse_mode='Markdown')
-  BOT.register_next_step_handler(sent_msg, instructors_input_handler, query.from_user.id, barrys.data.INSTRUCTORID_MAP)
+  BOT.register_next_step_handler(sent_msg, instructors_input_handler, query.from_user.id, BARRYS_INSTRUCTORID_MAP)
 
 @BOT.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'absolute-spin-instructors')
 def absolute_spin_instructors_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
   text = 'Enter instructor names separated by a comma\ne.g.: *chin*, *ria*\nEnter "*all*" to check for all instructors'
   USER_MANAGER.update_query_data_current_studio(query.from_user.id, query.message.chat.id, 'Absolute (Spin)')
   sent_msg = BOT.send_message(query.message.chat.id, text, parse_mode='Markdown')
-  BOT.register_next_step_handler(sent_msg, instructors_input_handler, query.from_user.id, absolute.data.SPIN_INSTRUCTORID_MAP)
+  BOT.register_next_step_handler(sent_msg, instructors_input_handler, query.from_user.id, ABSOLUTE_INSTRUCTORID_MAP)
 
 @BOT.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'absolute-pilates-instructors')
 def absolute_pilates_instructors_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
   text = 'Enter instructor names separated by a comma\ne.g.: *daniella*, *vnex*\nEnter "*all*" to check for all instructors'
   USER_MANAGER.update_query_data_current_studio(query.from_user.id, query.message.chat.id, 'Absolute (Pilates)')
   sent_msg = BOT.send_message(query.message.chat.id, text, parse_mode='Markdown')
-  BOT.register_next_step_handler(sent_msg, instructors_input_handler, query.from_user.id, absolute.data.PILATES_INSTRUCTORID_MAP)
+  BOT.register_next_step_handler(sent_msg, instructors_input_handler, query.from_user.id, ABSOLUTE_INSTRUCTORID_MAP)
 
 @BOT.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'ally-spin-instructors')
 def ally_spin_instructors_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
   text = 'Enter instructor names separated by a comma\ne.g.: *samuel*, *jasper*\nEnter "*all*" to check for all instructors'
   USER_MANAGER.update_query_data_current_studio(query.from_user.id, query.message.chat.id, 'Ally (Spin)')
   sent_msg = BOT.send_message(query.message.chat.id, text, parse_mode='Markdown')
-  BOT.register_next_step_handler(sent_msg, instructors_input_handler, query.from_user.id, ally.data.SPIN_INSTRUCTORID_MAP)
+  BOT.register_next_step_handler(sent_msg, instructors_input_handler, query.from_user.id, ALLY_INSTRUCTORID_MAP)
 
 @BOT.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'ally-pilates-instructors')
 def ally_pilates_instructors_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
   text = 'Enter instructor names separated by a comma\ne.g.: *candice*, *ruth*\nEnter "*all*" to check for all instructors'
   USER_MANAGER.update_query_data_current_studio(query.from_user.id, query.message.chat.id, 'Ally (Pilates)')
   sent_msg = BOT.send_message(query.message.chat.id, text, parse_mode='Markdown')
-  BOT.register_next_step_handler(sent_msg, instructors_input_handler, query.from_user.id, ally.data.PILATES_INSTRUCTORID_MAP)
+  BOT.register_next_step_handler(sent_msg, instructors_input_handler, query.from_user.id, ALLY_INSTRUCTORID_MAP)
 
 @BOT.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'show-instructors')
 def show_instructors_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
+  global ABSOLUTE_INSTRUCTOR_NAMES, ALLY_INSTRUCTOR_NAMES, BARRYS_INSTRUCTOR_NAMES, REV_INSTRUCTOR_NAMES
   query_data = USER_MANAGER.get_query_data(query.from_user.id, query.message.chat.id)
   text = ''
   if 'Rev' in query_data.studios:
-    text += '*Rev Instructors:* ' + ', '.join(rev.data.INSTRUCTOR_NAMES) + '\n\n'
+    text += '*Rev Instructors:* ' + ', '.join(REV_INSTRUCTOR_NAMES) + '\n\n'
   if 'Barrys' in query_data.studios:
-    text += '*Barrys Instructors:* ' + ', '.join(barrys.data.INSTRUCTOR_NAMES) + '\n\n'
-  if 'Absolute (Spin)' in query_data.studios:
-    text += '*Absolute (Spin) Instructors:* ' + ', '.join(absolute.data.SPIN_INSTRUCTOR_NAMES) + '\n\n'
-  if 'Absolute (Pilates)' in query_data.studios:
-    text += '*Absolute (Pilates) Instructors:* ' + ', '.join(absolute.data.PILATES_INSTRUCTOR_NAMES) + '\n\n'
-  if 'Ally (Spin)' in query_data.studios:
-    text += '*Ally (Spin) Instructors:* ' + ', '.join(ally.data.SPIN_INSTRUCTOR_NAMES) + '\n\n'
-  if 'Ally (Pilates)' in query_data.studios:
-    text += '*Ally (Pilates) Instructors:* ' + ', '.join(ally.data.PILATES_INSTRUCTOR_NAMES) + '\n\n'
+    text += '*Barrys Instructors:* ' + ', '.join(BARRYS_INSTRUCTOR_NAMES) + '\n\n'
+  if 'Absolute (Spin)' in query_data.studios or 'Absolute (Pilates)' in query_data.studios:
+    text += '*Absolute Instructors:* ' + ', '.join(ABSOLUTE_INSTRUCTOR_NAMES) + '\n\n'
+  if 'Ally (Spin)' in query_data.studios or 'Ally (Pilates)' in query_data.studios:
+    text += '*Ally Instructors:* ' + ', '.join(ALLY_INSTRUCTOR_NAMES) + '\n\n'
 
   sent_msg = BOT.send_message(query.message.chat.id, text, parse_mode='Markdown')
   instructors_handler(query.from_user.id, query.message)
@@ -387,12 +390,11 @@ def studios_handler(user_id: int, message: telebot.types.Message) -> None:
 
 @BOT.message_handler(commands=['instructors'])
 def instructors_list_handler(message: telebot.types.Message) -> None:
-  text = '*Rev Instructors:* ' + ', '.join(rev.data.INSTRUCTOR_NAMES) + '\n\n'
-  text += '*Barrys Instructors:* ' + ', '.join(barrys.data.INSTRUCTOR_NAMES) + '\n\n'
-  text += '*Absolute (Spin) Instructors:* ' + ', '.join(absolute.data.SPIN_INSTRUCTOR_NAMES) + '\n\n'
-  text += '*Absolute (Pilates) Instructors:* ' + ', '.join(absolute.data.PILATES_INSTRUCTOR_NAMES) + '\n\n'
-  text += '*Ally (Spin) Instructors:* ' + ', '.join(ally.data.SPIN_INSTRUCTOR_NAMES) + '\n\n'
-  text += '*Ally (Pilates) Instructors:* ' + ', '.join(ally.data.PILATES_INSTRUCTOR_NAMES) + '\n\n'
+  global ABSOLUTE_INSTRUCTOR_NAMES, ALLY_INSTRUCTOR_NAMES, BARRYS_INSTRUCTOR_NAMES, REV_INSTRUCTOR_NAMES
+  text = '*Rev Instructors:* ' + ', '.join(REV_INSTRUCTOR_NAMES) + '\n\n'
+  text += '*Barrys Instructors:* ' + ', '.join(BARRYS_INSTRUCTOR_NAMES) + '\n\n'
+  text += '*Absolute Instructors:* ' + ', '.join(ABSOLUTE_INSTRUCTOR_NAMES) + '\n\n'
+  text += '*Ally Instructors:* ' + ', '.join(ALLY_INSTRUCTOR_NAMES) + '\n\n'
   sent_msg = BOT.send_message(message.chat.id, text, parse_mode='Markdown')
 
 @BOT.message_handler(commands=['nerd'])
@@ -448,6 +450,7 @@ def nerd_input_handler(message: telebot.types.Message) -> None:
   2
   monday, wednesday, saturday
   '''
+  global ABSOLUTE_INSTRUCTOR_NAMES, ALLY_INSTRUCTOR_NAMES, BARRYS_INSTRUCTOR_NAMES, REV_INSTRUCTOR_NAMES
   input_str_list = message.text.splitlines()
 
   # Weeks and days = 2 items. Remaining items should be divisible by 3 (studio name, locations, instructors)
@@ -490,14 +493,10 @@ def nerd_input_handler(message: telebot.types.Message) -> None:
         instructor_list = REV_INSTRUCTOR_NAMES
       elif current_studio == StudioType.Barrys:
         instructor_list = BARRYS_INSTRUCTOR_NAMES
-      elif current_studio == StudioType.AbsolutePilates:
-        instructor_list = ABSOLUTE_PILATES_INSTRUCTOR_NAMES
-      elif current_studio == StudioType.AbsoluteSpin:
-        instructor_list = ABSOLUTE_SPIN_INSTRUCTOR_NAMES
-      elif current_studio == StudioType.AllyPilates:
-        instructor_list = ALLY_PILATES_INSTRUCTOR_NAMES
-      elif current_studio == StudioType.AllySpin:
-        instructor_list = ALLY_SPIN_INSTRUCTOR_NAMES
+      elif current_studio == StudioType.AbsolutePilates or current_studio == StudioType.AbsoluteSpin:
+        instructor_list = ABSOLUTE_INSTRUCTOR_NAMES
+      elif current_studio == StudioType.AllyPilates or current_studio == StudioType.AllySpin:
+        instructor_list = ALLY_INSTRUCTOR_NAMES
 
       selected_instructors = [x.strip().lower() for x in input_str.split(',')]
       invalid_instructors = []
@@ -628,10 +627,20 @@ def instructors_handler(user_id: int, message: telebot.types.Message) -> None:
 
 def update_cached_result_data() -> None:
   LOGGER.info('Updating cached result data...')
-  updated_cached_result_data = get_absolute_schedule(locations=[StudioLocation.All], weeks=2, days=['All'], instructors=['All'])
-  updated_cached_result_data += get_ally_schedule(weeks=2, days=['All'], instructors=['All'])
-  updated_cached_result_data += get_barrys_schedule(locations=[StudioLocation.All], weeks=3, days=['All'], instructors=['All'])
-  updated_cached_result_data += get_rev_schedule(locations=[StudioLocation.All], weeks=4, days=['All'], instructors=['All'])
+  global ABSOLUTE_INSTRUCTORID_MAP, ALLY_INSTRUCTORID_MAP, BARRYS_INSTRUCTORID_MAP, REV_INSTRUCTORID_MAP
+  global ABSOLUTE_INSTRUCTOR_NAMES, ALLY_INSTRUCTOR_NAMES, BARRYS_INSTRUCTOR_NAMES, REV_INSTRUCTOR_NAMES
+  ABSOLUTE_INSTRUCTORID_MAP = get_absolute_instructorid_map()
+  ALLY_INSTRUCTORID_MAP = get_ally_instructorid_map()
+  BARRYS_INSTRUCTORID_MAP = get_barrys_instructorid_map()
+  REV_INSTRUCTORID_MAP = get_rev_instructorid_map()
+  ABSOLUTE_INSTRUCTOR_NAMES = [instructor.lower() for instructor in list(ABSOLUTE_INSTRUCTORID_MAP)]
+  ALLY_INSTRUCTOR_NAMES = [instructor.lower() for instructor in list(ALLY_INSTRUCTORID_MAP)]
+  BARRYS_INSTRUCTOR_NAMES = [instructor.lower() for instructor in list(BARRYS_INSTRUCTORID_MAP)]
+  REV_INSTRUCTOR_NAMES = [instructor.lower() for instructor in list(REV_INSTRUCTORID_MAP)]
+  updated_cached_result_data = get_absolute_schedule(locations=[StudioLocation.All], weeks=2, days=['All'], instructors=['All'], instructorid_map=ABSOLUTE_INSTRUCTORID_MAP)
+  updated_cached_result_data += get_ally_schedule(weeks=2, days=['All'], instructors=['All'], instructorid_map=ALLY_INSTRUCTORID_MAP)
+  updated_cached_result_data += get_barrys_schedule(locations=[StudioLocation.All], weeks=3, days=['All'], instructors=['All'], instructorid_map=BARRYS_INSTRUCTORID_MAP)
+  updated_cached_result_data += get_rev_schedule(locations=[StudioLocation.All], weeks=4, days=['All'], instructors=['All'], instructorid_map=REV_INSTRUCTORID_MAP)
   global CACHED_RESULT_DATA
   CACHED_RESULT_DATA = updated_cached_result_data
   LOGGER.info('Successfully updated cached result data!')
