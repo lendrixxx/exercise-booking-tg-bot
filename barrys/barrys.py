@@ -1,10 +1,13 @@
 import calendar
+import logging
 import requests
 from bs4 import BeautifulSoup
 from common.data_types import ClassAvailability, ClassData, RESPONSE_AVAILABILITY_MAP, ResultData, StudioLocation, StudioType
 from copy import copy
 from datetime import datetime, timedelta
 from barrys.data import LOCATION_MAP, RESPONSE_LOCATION_TO_STUDIO_LOCATION_MAP
+
+LOGGER = logging.getLogger(__name__)
 
 def send_get_schedule_request(locations: list[StudioLocation], week: int, instructor: str, instructorid_map: dict[str, int]) -> requests.models.Response:
   url = 'https://apac.barrysbootcamp.com.au/reserve/index.cfm?action=Reserve.chooseClass'
