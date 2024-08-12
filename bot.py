@@ -645,7 +645,7 @@ def update_cached_result_data() -> None:
   updated_cached_result_data = get_absolute_schedule(locations=[StudioLocation.All], weeks=2, days=['All'], instructors=['All'], instructorid_map=ABSOLUTE_INSTRUCTORID_MAP)
   updated_cached_result_data += get_ally_schedule(weeks=2, days=['All'], instructors=['All'], instructorid_map=ALLY_INSTRUCTORID_MAP)
   updated_cached_result_data += get_barrys_schedule(locations=[StudioLocation.All], weeks=3, days=['All'], instructors=['All'], instructorid_map=BARRYS_INSTRUCTORID_MAP)
-  updated_cached_result_data += get_rev_schedule(locations=[StudioLocation.All], weeks=4, days=['All'], instructors=['All'], instructorid_map=REV_INSTRUCTORID_MAP)
+  updated_cached_result_data += get_rev_schedule(locations=[StudioLocation.All], start_date='', end_date='', days=['All'], instructorid_map=REV_INSTRUCTORID_MAP)
   global CACHED_RESULT_DATA
   CACHED_RESULT_DATA = updated_cached_result_data
   LOGGER.info('Successfully updated cached result data!')

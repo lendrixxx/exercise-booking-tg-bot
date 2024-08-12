@@ -48,6 +48,10 @@ RESPONSE_AVAILABILITY_MAP = {
   'bookable' : ClassAvailability.Available,
   'classfull' : ClassAvailability.Waitlist,
   'waitlistfull' : ClassAvailability.Full,
+  'open' : ClassAvailability.Available,
+  'waitlist' : ClassAvailability.Waitlist,
+  'full' : ClassAvailability.Waitlist, # TODO: Confirm session status string
+  'closed' : ClassAvailability.Available
 }
 
 SORTED_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']

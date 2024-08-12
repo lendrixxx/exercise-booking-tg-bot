@@ -1,156 +1,124 @@
 import calendar
+import json
 import logging
+import os
+import pytz
 import requests
 from bs4 import BeautifulSoup
 from common.data_types import ClassAvailability, ClassData, RESPONSE_AVAILABILITY_MAP, ResultData, StudioLocation, StudioType
 from copy import copy
 from datetime import datetime, timedelta
-from rev.data import LOCATION_MAP, RESPONSE_LOCATION_TO_STUDIO_LOCATION_MAP
+from rev.data import ROOM_NAME_TO_STUDIO_LOCATION_MAP, SITE_ID_MAP
 
 LOGGER = logging.getLogger(__name__)
+SECURITY_TOKEN = os.environ.get('BOOKING_BOT_REV_SECURITY_TOKEN')
 
-def send_get_schedule_request(locations: list[StudioLocation], week: int, instructor: str, instructorid_map: dict[str, int]) -> requests.models.Response:
-  url = 'https://rhythmstudios.zingfit.com/reserve/index.cfm?action=Reserve.chooseClass'
-  params = {'wk': week}
-
-  if 'All' in locations:
-    params = {**params, **{'site': 2, 'site2': 3, 'site3': 4, 'site4': 5, 'site5': 6}}
-  else:
-    site_param_name = 'site'
-    for location in locations:
-      params[site_param_name] = LOCATION_MAP[location]
-      if site_param_name == 'site':
-        site_param_name = 'site2'
-      elif site_param_name != 'site5':
-        site_param_name = site_param_name[:-1] + str(int(site_param_name[-1]) + 1)
-      else:
-        break
-
-  if instructor != 'All':
-    params = {**params, **{'instructorid': instructorid_map[instructor]}}
-
-  return requests.get(url=url, params=params)
+def send_get_schedule_request(location: StudioLocation, start_date: str, end_date: str, instructorid_map: dict[str, int]) -> requests.models.Response:
+  url = 'https://widgetapi.hapana.com/v2/wAPI/site/sessions?sessionCategory=classes'
+  params = {'siteID': SITE_ID_MAP[location], 'startDate': start_date, 'endDate': end_date}
+  headers = {
+    'Content-Type': 'application/json',
+    'Securitytoken': SECURITY_TOKEN,
+  }
+  return requests.get(url=url, params=params, headers=headers)
 
 
-def parse_get_schedule_response(response: requests.models.Response, week: int, days: list[str]) -> dict[datetime.date, list[ClassData]]:
-  soup = BeautifulSoup(response.text, 'html.parser')
-  reserve_table_list = [table for table in soup.find_all('table') if table.get('id') == 'reserve']
-  reserve_table_list_len = len(reserve_table_list)
-  if reserve_table_list_len != 1:
-    LOGGER.warning(f'Failed to get schedule - Expected 1 reserve table, got {reserve_table_list_len} instead')
+def parse_get_schedule_response(response: requests.models.Response, days: list[str]) -> dict[datetime.date, list[ClassData]]:
+  if response.status_code != 200:
+    LOGGER.warning(f'Failed to get schedule - API callback error {response.status_code}')
     return {}
 
-  reserve_table = reserve_table_list[0]
-  if reserve_table.tbody is None:
-    return {}
-
-  reserve_table_rows = reserve_table.tbody.find_all('tr')
-  reserve_table_rows_len = len(reserve_table_rows)
-  if reserve_table_rows_len != 1:
-    LOGGER.warning(f'Failed to get schedule - Expected 1 schedule row, got {reserve_table_rows_len} rows instead')
-    return {}
-
-  reserve_table_datas = reserve_table_rows[0].find_all('td')
-  if len(reserve_table_datas) == 0:
-    LOGGER.warning('Failed to get schedule - Table data is null')
-    return {}
-
-  # Get yesterday's date and update date at the start of each loop
-  current_date = datetime.now().date() + timedelta(weeks=week) - timedelta(days=1)
   result_dict = {}
-  for reserve_table_data in reserve_table_datas:
-    current_date = current_date + timedelta(days=1)
-    if 'All' not in days and calendar.day_name[current_date.weekday()] not in days:
-      continue
-
-    result_dict[current_date] = []
-    reserve_table_data_div_list = reserve_table_data.find_all('div')
-    if len(reserve_table_data_div_list) == 0:
-      LOGGER.warning('Failed to get schedule - Table data div is null')
+  try:
+    response_json = json.loads(response.text)
+    if response_json['success'] == False:
+      LOGGER.warning(f'Failed to get schedule - API callback failed')
       return {}
 
-    for reserve_table_data_div in reserve_table_data_div_list:
-      reserve_table_data_div_class_list = reserve_table_data_div.get('class')
-      if len(reserve_table_data_div_class_list) < 2:
-        availability = ClassAvailability.Null
-      else:
-        availability = RESPONSE_AVAILABILITY_MAP[reserve_table_data_div_class_list[1]]
+    for data in response_json['data']:
+      if data['sessionStatus'] == 'complete':
+        continue
 
-      class_details = ClassData(studio=StudioType.Rev, location=StudioLocation.Null, name='', instructor='', time='', availability=availability)
-      for reserve_table_data_div_span in reserve_table_data_div.find_all('span'):
-        reserve_table_data_div_span_class_list = reserve_table_data_div_span.get('class')
-        if len(reserve_table_data_div_span_class_list) == 0:
-          LOGGER.warning('Failed to get schedule - Table data span class is null')
-          continue
+      class_date = datetime.strptime(data['sessionDate'], '%Y-%m-%d').date()
+      if 'All' not in days and calendar.day_name[class_date.weekday()] not in days:
+        continue
 
-        reserve_table_data_div_span_class = reserve_table_data_div_span_class_list[0]
-        if reserve_table_data_div_span_class == 'scheduleClass':
-          schedule_class_str = str(reserve_table_data_div_span.contents[0].strip())
-          name_location_split_pos = schedule_class_str.find(' @ ')
-          class_name = schedule_class_str[:name_location_split_pos]
-          class_details.name = class_name
-          class_location_str = schedule_class_str[name_location_split_pos + 3:]
-          if class_location_str in RESPONSE_LOCATION_TO_STUDIO_LOCATION_MAP:
-            class_details.location = RESPONSE_LOCATION_TO_STUDIO_LOCATION_MAP[class_location_str]
-          else:
-            class_location_list = [value for key, value in RESPONSE_LOCATION_TO_STUDIO_LOCATION_MAP.items() if key in class_location_str]
-            class_details.location = class_location_list[0]
-        elif reserve_table_data_div_span_class == 'scheduleInstruc':
-          class_details.instructor = str(reserve_table_data_div_span.contents[0].strip())
-        elif reserve_table_data_div_span_class == 'scheduleTime':
-          class_details.set_time(str(reserve_table_data_div_span.contents[0].strip()))
-          result_dict[current_date].append(copy(class_details))
+      instructors = []
+      for instructorData in data['instructorData']:
+        instructors.append(instructorData['instructorName'])
+      instructor_str = ' / '.join(instructors)
 
-    if len(result_dict[current_date]) == 0:
-      result_dict.pop(current_date)
+      class_name = data['sessionName']
+      class_name_location_split_pos = class_name.find(' @ ')
+      class_name = class_name[:class_name_location_split_pos]
+
+      class_time = datetime.strptime(data['startTime'], '%H:%M:%S')
+
+      class_details = ClassData(
+        studio=StudioType.Rev,
+        location=ROOM_NAME_TO_STUDIO_LOCATION_MAP[data['roomName']],
+        name=class_name,
+        instructor=instructor_str,
+        time=datetime.strftime(class_time, '%I:%M %p'),
+        availability=RESPONSE_AVAILABILITY_MAP[data['sessionStatus']])
+
+      if class_date not in result_dict:
+        result_dict[class_date] = []
+      result_dict[class_date].append(copy(class_details))
+
+    result_dict = {key:val for key, val in result_dict.items() if val}
+
+  except Exception as e:
+    LOGGER.warning(f'Failed to get schedule - {e}')
+    return {}
 
   return result_dict
 
-def get_rev_schedule(locations: list[StudioLocation], weeks: int, days: str, instructors: list[str], instructorid_map: dict[str, int]) -> ResultData:
+
+def get_rev_schedule(locations: list[StudioLocation], start_date: str, end_date: str, days: str, instructorid_map: dict[str, int]) -> ResultData:
   result = ResultData()
-  # REST API can only select one instructor at a time
-  for instructor in instructors:
-    # REST API can only select one week at a time
-    for week in range(0, weeks):
-      get_schedule_response = send_get_schedule_request(locations=locations, instructor=instructor, week=week, instructorid_map=instructorid_map)
-      date_class_data_list_dict = parse_get_schedule_response(response=get_schedule_response, week=week, days=days)
-      result.add_classes(date_class_data_list_dict)
+  # REST API can only select one location at a time
+  if 'All' in locations:
+    locations = ['Bugis', 'Orchard', 'Suntec', 'TJPG']
+
+  if start_date == '':
+    start_date = datetime.now(pytz.timezone('Asia/Singapore'))
+    start_date_str = start_date.strftime('%Y-%m-%d')
+
+  if end_date == '':
+    end_date = start_date + timedelta(weeks=4)
+    end_date_str = end_date.strftime('%Y-%m-%d')
+
+  for location in locations:
+    get_schedule_response = send_get_schedule_request(location=location, start_date=start_date, end_date=end_date, instructorid_map=instructorid_map)
+    date_class_data_list_dict = parse_get_schedule_response(response=get_schedule_response, days=days)
+    result.add_classes(date_class_data_list_dict)
 
   return result
 
 def get_instructorid_map() -> dict[str, int]:
-  def _get_instructorid_map_internal(response: requests.models.Response) -> dict[str, int]:
-    soup = BeautifulSoup(response.text, 'html.parser')
-    reserve_filters_list = [list_item for list_item in soup.find_all('ul') if list_item.get('id') == 'reserveFilter']
-    reserve_filters_list_len = len(reserve_filters_list)
-    if reserve_filters_list_len != 1:
-      LOGGER.warning(f'Failed to get list of instructors - Expected 1 reserve filter list, got {reserve_filters_list_len} instead')
-      return {}
-
-    reserve_filters = reserve_filters_list[0]
-    instructor_filter_list = [list_item for list_item in reserve_filters.find_all('li') if list_item.get('id') == 'reserveFilter1']
-    instructor_filter_list_len = len(instructor_filter_list)
-    if instructor_filter_list_len != 1:
-      LOGGER.warning(f'Failed to get list of instructors - Expected 1 instructor filter list, got {instructor_filter_list_len} instead')
-      return {}
-
-    instructorid_map = {}
-    instructorid_prefix = 'instructorid='
-    instructorid_prefix_len = len(instructorid_prefix)
-    instructorid_len = 19
-    for instructor in instructor_filter_list[0].find_all('li'):
-      instructor_name = instructor.string
-      link = instructor.a.get('href')
-      start_pos = link.find('instructorid=')
-      instructorid = link[start_pos + instructorid_prefix_len:start_pos + instructorid_prefix_len + instructorid_len]
-      instructorid_map[instructor_name] = instructorid
+  url = 'https://widgetapi.hapana.com/v2/wAPI/site/instructor?siteID=WHplM0YwQjVCUmZic3RvV3oveFFSQT09'
+  headers = {
+    'Content-Type': 'application/json',
+    'Securitytoken': SECURITY_TOKEN,
+  }
+  response = requests.get(url=url, headers=headers)
+  if response.status_code != 200:
+    LOGGER.warning(f'Failed to get list of instructors - API callback error {response.status_code}')
     return instructorid_map
 
-  # REST API can only select one week at a time
-  instructorid_map = {}
-  for week in range(0, 4):
-    get_schedule_response = send_get_schedule_request(locations=['All'], instructor='All', week=week, instructorid_map=None)
-    current_instructorid_map = _get_instructorid_map_internal(response=get_schedule_response)
-    instructorid_map = {**instructorid_map, **current_instructorid_map}
+  try:
+    response_json = json.loads(response.text)
+    instructorid_map = {}
+    if response_json['success'] == False:
+      LOGGER.warning(f'Failed to get list of instructors - API callback failed')
+      return instructorid_map
+
+    for data in response_json['data']:
+      instructorid_map[data['instructorName'].lower()] = data['instructorID']
+
+  except Exception as e:
+    LOGGER.warning(f'Failed to get list of instructors - {e}')
+    return instructorid_map
 
   return instructorid_map
