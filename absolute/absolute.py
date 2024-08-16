@@ -157,7 +157,7 @@ def get_instructorid_map() -> dict[str, int]:
       link = instructor.a.get('href')
       start_pos = link.find('instructorid=')
       instructorid = link[start_pos + instructorid_prefix_len:start_pos + instructorid_prefix_len + instructorid_len]
-      instructorid_map[instructor_name] = instructorid
+      instructorid_map[instructor_name.lower()] = instructorid
     return instructorid_map
 
   # REST API can only select one week at a time
