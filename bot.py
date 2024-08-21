@@ -44,6 +44,17 @@ BARRYS_INSTRUCTOR_NAMES = []
 REV_INSTRUCTORID_MAP = {}
 REV_INSTRUCTOR_NAMES = []
 
+def get_studios_keyboard(user_id: int, chat_id: int) -> telebot.types.InlineKeyboardMarkup:
+  query_data = USER_MANAGER.get_query_data(user_id, chat_id)
+  button_data = USER_MANAGER.get_button_data(user_id, chat_id)
+  studios_keyboard = telebot.types.InlineKeyboardMarkup()
+  studios_keyboard.add(button_data.studios_buttons_map['Rev'], button_data.studios_buttons_map['Barrys'])
+  studios_keyboard.add(button_data.studios_buttons_map['Absolute (Spin)'], button_data.studios_buttons_map['Absolute (Pilates)'])
+  studios_keyboard.add(button_data.studios_buttons_map['Ally (Spin)'], button_data.studios_buttons_map['Ally (Pilates)'])
+  studios_keyboard.add(button_data.studios_select_all_button, button_data.studios_unselect_all_button)
+  studios_keyboard.add(button_data.studios_next_button)
+  return studios_keyboard
+
 def get_locations_keyboard(user_id: int, chat_id: int) -> telebot.types.InlineKeyboardMarkup:
   query_data = USER_MANAGER.get_query_data(user_id, chat_id)
   button_data = USER_MANAGER.get_button_data(user_id, chat_id)
@@ -77,7 +88,7 @@ def get_days_keyboard(user_id: int, chat_id: int) -> telebot.types.InlineKeyboar
   days_keyboard.add(button_data.days_buttons_map['Friday'], button_data.days_buttons_map['Saturday'])
   days_keyboard.add(button_data.days_buttons_map['Sunday'])
   days_keyboard.add(button_data.days_select_all_button, button_data.days_unselect_all_button)
-  days_keyboard.add(button_data.days_back_button, button_data.days_next_button)
+  days_keyboard.add(button_data.days_next_button)
   return days_keyboard
 
 def send_results(query: telebot.types.CallbackQuery) -> None:
@@ -106,73 +117,170 @@ def send_results(query: telebot.types.CallbackQuery) -> None:
   else:
     BOT.send_message(query.message.chat.id, schedule_str, parse_mode='Markdown')
 
+@BOT.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'studios-selection')
+def studios_selection_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
+  query_data_dict = eval(query.data)
+  query_data = USER_MANAGER.get_query_data(query.from_user.id, query.message.chat.id)
+  text = '*Currently selected studio(s)*\n'
+  text += query_data.get_query_str(include_studio=True)
+
+  sent_msg = BOT.send_message(query.message.chat.id, text, reply_markup=get_studios_keyboard(query.from_user.id, query.message.chat.id), parse_mode='Markdown')
+  USER_MANAGER.update_button_data_studios_selection_message(query.from_user.id, query.message.chat.id, sent_msg)
+
+@BOT.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'instructors-selection')
+def instructors_selection_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
+  query_data_dict = eval(query.data)
+  instructors_selection_handler(query.from_user.id, query.message)
+
+@BOT.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'weeks-selection')
+def weeks_selection_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
+  query_data_dict = eval(query.data)
+  query_data = USER_MANAGER.get_query_data(query.from_user.id, query.message.chat.id)
+  text = '*Currently selected week(s)*\n'
+  text += query_data.get_query_str(include_weeks=True)
+  text += '\nAbsolute shows up to 1.5 weeks\nAlly shows up to 2 weeks\nBarrys shows up to 3 weeks\nRev shows up to 4 weeks\n'
+
+  one_button = telebot.types.InlineKeyboardButton('1', callback_data='{"weeks": 1, "step": "weeks"}')
+  two_button = telebot.types.InlineKeyboardButton('2', callback_data='{"weeks": 2, "step": "weeks"}')
+  three_button = telebot.types.InlineKeyboardButton('3', callback_data='{"weeks": 3, "step": "weeks"}')
+  four_button = telebot.types.InlineKeyboardButton('4', callback_data='{"weeks": 4, "step": "weeks"}')
+  back_button = telebot.types.InlineKeyboardButton('◀️ Back', callback_data='{"step": "main-page-handler"}')
+
+  keyboard = telebot.types.InlineKeyboardMarkup()
+  keyboard.add(one_button, two_button)
+  keyboard.add(three_button, four_button)
+  keyboard.add(back_button)
+  sent_msg = BOT.send_message(query.message.chat.id, text, reply_markup=keyboard, parse_mode='Markdown')
+
+@BOT.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'days-selection')
+def days_selection_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
+  days_selection_handler(query.from_user.id, query.message)
+
+def days_selection_handler(user_id: int, message: telebot.types.Message) -> None:
+  query_data = USER_MANAGER.get_query_data(user_id, message.chat.id)
+  text = '*Currently selected day(s)*\n'
+  text += query_data.get_query_str(include_days=True)
+
+  sent_msg = BOT.send_message(message.chat.id, text, reply_markup=get_days_keyboard(user_id, message.chat.id), parse_mode='Markdown')
+  USER_MANAGER.update_button_data_days_selection_message(user_id, message.chat.id, sent_msg)
+
+@BOT.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'get-schedule')
+def get_schedule_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
+  query_data = USER_MANAGER.get_query_data(query.from_user.id, query.message.chat.id)
+  if len(query_data.studios) == 0:
+    text = 'No studio(s) selected. Please select the studio(s) to get schedule for'
+    sent_msg = BOT.send_message(query.message.chat.id, text, parse_mode='Markdown')
+    main_page_handler(query.from_user.id, query.message)
+    return
+
+  if len(query_data.days) == 0:
+    text = 'No day(s) selected. Please select the day(s) to get schedule for'
+    sent_msg = BOT.send_message(query.message.chat.id, text, parse_mode='Markdown')
+    main_page_handler(query.from_user.id, query.message)
+    return
+
+  send_results(query)
+
 @BOT.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'studios')
 def studios_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
-  query_data_dict = eval(query.data)
-  studio_selected = query_data_dict['studios']
-  if studio_selected == 'All':
-    USER_MANAGER.update_query_data_select_all_studios(query.from_user.id, query.message.chat.id)
-    USER_MANAGER.update_button_data_select_all_studios_locations_buttons_map(query.from_user.id, query.message.chat.id)
-    studios_handler(query.from_user.id, query.message)
-  elif studio_selected == 'None':
-    USER_MANAGER.update_query_data_studios(query.from_user.id, query.message.chat.id, {})
-    USER_MANAGER.reset_button_data_studios_locations_buttons_map(query.from_user.id, query.message.chat.id)
-    studios_handler(query.from_user.id, query.message)
-  else:
-    USER_MANAGER.update_query_data_current_studio(query.from_user.id, query.message.chat.id, studio_selected)
-    locations_handler(query.from_user.id, query.message)
-
-@BOT.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'locations')
-def locations_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
-  query_data = USER_MANAGER.get_query_data(query.from_user.id, query.message.chat.id)
   button_data = USER_MANAGER.get_button_data(query.from_user.id, query.message.chat.id)
   query_data_dict = eval(query.data)
-  selected_studio_location = StudioLocation[query_data_dict['locations']]
+  selected_studio = StudioType[query_data_dict['studios']]
+  if selected_studio == StudioType.Null:
+    for studio in button_data.studios_buttons_map:
+      button_data.studios_buttons_map[studio] = telebot.types.InlineKeyboardButton(studio, callback_data=button_data.studios_buttons_map[studio].callback_data)
+    USER_MANAGER.update_button_data_studios_buttons_map(query.from_user.id, query.message.chat.id, button_data.studios_buttons_map)
+    USER_MANAGER.update_query_data_studios(query.from_user.id, query.message.chat.id, {})
+    USER_MANAGER.reset_button_data_studios_locations_buttons_map(query.from_user.id, query.message.chat.id)
+  elif selected_studio == StudioType.All:
+    for studio in button_data.studios_buttons_map:
+      button_data.studios_buttons_map[studio] = telebot.types.InlineKeyboardButton(studio + ' ✅', callback_data=button_data.studios_buttons_map[studio].callback_data)
+    USER_MANAGER.update_button_data_studios_buttons_map(query.from_user.id, query.message.chat.id, button_data.studios_buttons_map)
+    USER_MANAGER.update_query_data_select_all_studios(query.from_user.id, query.message.chat.id)
+    USER_MANAGER.update_button_data_select_all_studios_locations_buttons_map(query.from_user.id, query.message.chat.id)
+  elif selected_studio == StudioType.AllySpin or selected_studio == StudioType.AllyPilates:
+    USER_MANAGER.update_query_data_current_studio(query.from_user.id, query.message.chat.id, selected_studio)
+    select_location_handler(query.from_user.id, query.message, StudioLocation.CrossStreet)
+  else:
+    USER_MANAGER.update_query_data_current_studio(query.from_user.id, query.message.chat.id, selected_studio)
+    locations_handler(query.from_user.id, query.message)
+    return
+
+  query_data = USER_MANAGER.get_query_data(query.from_user.id, query.message.chat.id)
+  text = '*Currently selected studio(s)*\n'
+  text += query_data.get_query_str(include_studio=True)
+
+  BOT.edit_message_text(
+    chat_id=button_data.studios_selection_message.chat.id,
+    message_id=button_data.studios_selection_message.id,
+    text=text,
+    reply_markup=get_studios_keyboard(query.from_user.id, query.message.chat.id),
+    parse_mode='Markdown')
+
+def select_location_handler(user_id: int, message: telebot.types.Message, selected_studio_location: StudioLocation) -> None:
+  query_data = USER_MANAGER.get_query_data(user_id, message.chat.id)
+  button_data = USER_MANAGER.get_button_data(user_id, message.chat.id)
   if selected_studio_location == StudioLocation.Null:
     for location in button_data.studios_locations_buttons_map[query_data.current_studio]:
       button_data.studios_locations_buttons_map[query_data.current_studio][location] = telebot.types.InlineKeyboardButton(location, callback_data=button_data.studios_locations_buttons_map[query_data.current_studio][location].callback_data)
-    USER_MANAGER.update_button_data_studios_locations_buttons_map(query.from_user.id, query.message.chat.id, button_data.studios_locations_buttons_map)
+    button_data.studios_buttons_map[query_data.current_studio] = telebot.types.InlineKeyboardButton(query_data.current_studio, callback_data=button_data.studios_buttons_map[query_data.current_studio].callback_data)
+    USER_MANAGER.update_button_data_studios_locations_buttons_map(user_id, message.chat.id, button_data.studios_locations_buttons_map)
     query_data.studios.pop(query_data.current_studio)
-    USER_MANAGER.update_query_data_studios(query.from_user.id, query.message.chat.id, query_data.studios)
+    USER_MANAGER.update_query_data_studios(user_id, message.chat.id, query_data.studios)
   elif selected_studio_location == StudioLocation.All:
     for location in button_data.studios_locations_buttons_map[query_data.current_studio]:
       button_data.studios_locations_buttons_map[query_data.current_studio][location] = telebot.types.InlineKeyboardButton(location + ' ✅', callback_data=button_data.studios_locations_buttons_map[query_data.current_studio][location].callback_data)
-    USER_MANAGER.update_button_data_studios_locations_buttons_map(query.from_user.id, query.message.chat.id, button_data.studios_locations_buttons_map)
+    button_data.studios_buttons_map[query_data.current_studio] = telebot.types.InlineKeyboardButton(query_data.current_studio + ' ✅', callback_data=button_data.studios_buttons_map[query_data.current_studio].callback_data)
+    USER_MANAGER.update_button_data_studios_locations_buttons_map(user_id, message.chat.id, button_data.studios_locations_buttons_map)
     if query_data.current_studio not in query_data.studios:
       new_studio = {query_data.current_studio: StudioData(locations=copy(STUDIO_LOCATIONS_MAP[query_data.current_studio]))}
       query_data.studios = {**query_data.studios, **new_studio}
-      USER_MANAGER.update_query_data_studios(query.from_user.id, query.message.chat.id, query_data.studios)
+      USER_MANAGER.update_query_data_studios(user_id, message.chat.id, query_data.studios)
     else:
       query_data.studios[query_data.current_studio].locations = copy(STUDIO_LOCATIONS_MAP[query_data.current_studio])
-      USER_MANAGER.update_query_data_studios(query.from_user.id, query.message.chat.id, query_data.studios)
+      USER_MANAGER.update_query_data_studios(user_id, message.chat.id, query_data.studios)
   else:
     if query_data.current_studio not in query_data.studios:
       button_data.studios_locations_buttons_map[query_data.current_studio][selected_studio_location] = \
         telebot.types.InlineKeyboardButton(
           selected_studio_location + ' ✅',
           callback_data=button_data.studios_locations_buttons_map[query_data.current_studio][selected_studio_location].callback_data)
-      USER_MANAGER.update_button_data_studios_locations_buttons_map(query.from_user.id, query.message.chat.id, button_data.studios_locations_buttons_map)
+      button_data.studios_buttons_map[query_data.current_studio] = telebot.types.InlineKeyboardButton(query_data.current_studio + ' ✅', callback_data=button_data.studios_buttons_map[query_data.current_studio].callback_data)
+      USER_MANAGER.update_button_data_studios_buttons_map(user_id, message.chat.id, button_data.studios_buttons_map)
+      USER_MANAGER.update_button_data_studios_locations_buttons_map(user_id, message.chat.id, button_data.studios_locations_buttons_map)
       new_studio = {query_data.current_studio: StudioData(locations=[selected_studio_location])}
       query_data.studios = {**query_data.studios, **new_studio}
-      USER_MANAGER.update_query_data_studios(query.from_user.id, query.message.chat.id, query_data.studios)
+      USER_MANAGER.update_query_data_studios(user_id, message.chat.id, query_data.studios)
     elif selected_studio_location in query_data.studios[query_data.current_studio].locations:
       button_data.studios_locations_buttons_map[query_data.current_studio][selected_studio_location] = \
         telebot.types.InlineKeyboardButton(
           selected_studio_location,
           callback_data=button_data.studios_locations_buttons_map[query_data.current_studio][selected_studio_location].callback_data)
-      USER_MANAGER.update_button_data_studios_locations_buttons_map(query.from_user.id, query.message.chat.id, button_data.studios_locations_buttons_map)
+      USER_MANAGER.update_button_data_studios_buttons_map(user_id, message.chat.id, button_data.studios_buttons_map)
+      USER_MANAGER.update_button_data_studios_locations_buttons_map(user_id, message.chat.id, button_data.studios_locations_buttons_map)
       query_data.studios[query_data.current_studio].locations.remove(selected_studio_location)
       if len(query_data.studios[query_data.current_studio].locations) == 0:
         query_data.studios.pop(query_data.current_studio)
-      USER_MANAGER.update_query_data_studios(query.from_user.id, query.message.chat.id, query_data.studios)
+        button_data.studios_buttons_map[query_data.current_studio] = telebot.types.InlineKeyboardButton(query_data.current_studio, callback_data=button_data.studios_buttons_map[query_data.current_studio].callback_data)
+      USER_MANAGER.update_query_data_studios(user_id, message.chat.id, query_data.studios)
     else:
       button_data.studios_locations_buttons_map[query_data.current_studio][selected_studio_location] = telebot.types.InlineKeyboardButton(selected_studio_location + ' ✅', callback_data=button_data.studios_locations_buttons_map[query_data.current_studio][selected_studio_location].callback_data)
-      USER_MANAGER.update_button_data_studios_locations_buttons_map(query.from_user.id, query.message.chat.id, button_data.studios_locations_buttons_map)
+      button_data.studios_buttons_map[query_data.current_studio] = telebot.types.InlineKeyboardButton(query_data.current_studio + ' ✅', callback_data=button_data.studios_buttons_map[query_data.current_studio].callback_data)
+      USER_MANAGER.update_button_data_studios_buttons_map(user_id, message.chat.id, button_data.studios_buttons_map)
+      USER_MANAGER.update_button_data_studios_locations_buttons_map(user_id, message.chat.id, button_data.studios_locations_buttons_map)
+      USER_MANAGER.update_button_data_studios_buttons_map(user_id, message.chat.id, button_data.studios_buttons_map)
       query_data.studios[query_data.current_studio].locations.append(selected_studio_location)
-      USER_MANAGER.update_query_data_studios(query.from_user.id, query.message.chat.id, query_data.studios)
+      USER_MANAGER.update_query_data_studios(user_id, message.chat.id, query_data.studios)
 
-  text = query_data.get_query_str(include_studio=True)
-  text += '*Select the location(s) to check*'
+
+@BOT.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'locations')
+def locations_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
+  query_data_dict = eval(query.data)
+  query_data = USER_MANAGER.get_query_data(query.from_user.id, query.message.chat.id)
+  button_data = USER_MANAGER.get_button_data(query.from_user.id, query.message.chat.id)
+  select_location_handler(query.from_user.id, query.message, StudioLocation[query_data_dict['location']])
+  text = '*Currently selected studio(s)*\n'
+  text += query_data.get_query_str(include_studio=True)
 
   BOT.edit_message_text(
     chat_id=button_data.locations_selection_message.chat.id,
@@ -181,32 +289,15 @@ def locations_callback_query_handler(query: telebot.types.CallbackQuery) -> None
     reply_markup=get_locations_keyboard(query.from_user.id, query.message.chat.id),
     parse_mode='Markdown')
 
-@BOT.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'locations-select-more-studios')
-def locations_back_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
-  studios_handler(query.from_user.id, query.message)
-
-@BOT.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'studios-next')
-def studios_next_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
-  query_data = USER_MANAGER.get_query_data(query.from_user.id, query.message.chat.id)
-  if len(query_data.studios) == 0:
-    text = 'Please select a studio'
-    sent_msg = BOT.send_message(query.message.chat.id, text, parse_mode='Markdown')
-    studios_handler(query.from_user.id, query.message)
-  else:
-    for studio in query_data.studios:
-      query_data.studios[studio].instructors = ['All']
-    USER_MANAGER.update_query_data_studios(query.from_user.id, query.message.chat.id, query_data.studios)
-    instructors_handler(query.from_user.id, query.message)
+@BOT.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'main-page-handler')
+def main_page_handler_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
+  main_page_handler(query.from_user.id, query.message)
 
 @BOT.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'weeks')
 def weeks_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
   query_data_dict = eval(query.data)
   USER_MANAGER.update_query_data_weeks(query.from_user.id, query.message.chat.id, query_data_dict['weeks'])
-  days_handler(query.from_user.id, query.message)
-
-@BOT.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'weeks-back')
-def weeks_back_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
-  instructors_handler(query.from_user.id, query.message)
+  main_page_handler(query.from_user.id, query.message)
 
 @BOT.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'days')
 def days_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
@@ -238,8 +329,8 @@ def days_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
       USER_MANAGER.update_query_data_days(query.from_user.id, query.message.chat.id, query_data.days)
 
   query_data = USER_MANAGER.get_query_data(query.from_user.id, query.message.chat.id)
-  text = query_data.get_query_str(include_studio=True, include_instructors=True, include_weeks=True, include_days=True)
-  text += '*Select the day(s) to show classes of*'
+  text = '*Currently selected day(s)*\n'
+  text += query_data.get_query_str(include_days=True)
 
   button_data = USER_MANAGER.get_button_data(query.from_user.id, query.message.chat.id)
   BOT.edit_message_text(
@@ -249,21 +340,17 @@ def days_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
     reply_markup=get_days_keyboard(query.from_user.id, query.message.chat.id),
     parse_mode='Markdown')
 
-@BOT.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'days-back')
-def days_back_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
-  weeks_handler(query.from_user.id, query.message)
 
 @BOT.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'days-next')
 def days_next_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
   query_data = USER_MANAGER.get_query_data(query.from_user.id, query.message.chat.id)
   if len(query_data.days) == 0:
-    text = 'Please select a day'
+    text = 'No day(s) selected. Please select the day(s) to get schedule for'
     sent_msg = BOT.send_message(query.message.chat.id, text, parse_mode='Markdown')
-    days_handler(query.from_user.id, query.message)
+    days_selection_handler(query.from_user.id, query.message)
     return
 
-  send_results(query)
-
+  main_page_handler(query.from_user.id, query.message)
 @BOT.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'rev-instructors')
 def rev_instructors_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
   text = 'Enter instructor names separated by a comma\ne.g.: *chloe*, *jerlyn*, *zai*\nEnter "*all*" to check for all instructors'
@@ -321,77 +408,59 @@ def show_instructors_callback_query_handler(query: telebot.types.CallbackQuery) 
     text += '*Ally Instructors:* ' + ', '.join(ALLY_INSTRUCTOR_NAMES) + '\n\n'
 
   sent_msg = BOT.send_message(query.message.chat.id, text, parse_mode='Markdown')
-  instructors_handler(query.from_user.id, query.message)
+  instructors_selection_handler(query.from_user.id, query.message)
 
 def instructors_input_handler(message: telebot.types.Message, user_id: int, instructorid_map: dict[str, int]) -> None:
   query_data = USER_MANAGER.get_query_data(user_id, message.chat.id)
-  query_data.studios[query_data.current_studio].instructors = [x.strip() for x in message.text.lower().split(',')]
-  if 'all' in query_data.studios[query_data.current_studio].instructors:
+  updated_instructors_list = [x.strip() for x in message.text.lower().split(',')]
+  if 'all' in updated_instructors_list:
     query_data.studios[query_data.current_studio].instructors = ['All']
     USER_MANAGER.update_query_data_studios(user_id, message.chat.id, query_data.studios)
   else:
     invalid_instructors = []
-    for instructor in query_data.studios[query_data.current_studio].instructors:
+    for instructor in updated_instructors_list:
       instructor_in_map = (any(instructor in instructor_in_map.split(' ') for instructor_in_map in instructorid_map)
         or any(instructor == instructor_in_map for instructor_in_map in instructorid_map))
       if not instructor_in_map:
         invalid_instructors.append(instructor)
 
     if len(invalid_instructors) > 0:
-      query_data.studios[query_data.current_studio].instructors = [
+      updated_instructors_list = [
         instructor for instructor
-        in query_data.studios[query_data.current_studio].instructors
+        in updated_instructors_list
         if instructor not in invalid_instructors
       ]
       USER_MANAGER.update_query_data_studios(user_id, message.chat.id, query_data.studios)
       text = f'Failed to find instructor(s): {", ".join(invalid_instructors)}'
       sent_msg = BOT.send_message(message.chat.id, text, parse_mode='Markdown')
 
-  instructors_handler(user_id, message)
+    if len(updated_instructors_list) > 0:
+      query_data.studios[query_data.current_studio].instructors = updated_instructors_list
 
-@BOT.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'instructors-next')
-def instructors_next_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
-  query_data = USER_MANAGER.get_query_data(query.from_user.id, query.message.chat.id)
-  if not query_data.has_instructors_selected():
-    text = 'Please select at least one instructor'
-    sent_msg = BOT.send_message(query.message.chat.id, text, parse_mode='Markdown')
-    instructors_handler(query.from_user.id, query.message)
-  else:
-    weeks_handler(query.from_user.id, query.message)
-
-@BOT.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'instructors-back')
-def instructors_back_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
-  studios_handler(query.from_user.id, query.message)
+  instructors_selection_handler(user_id, message)
 
 @BOT.message_handler(commands=['start'])
 def start_handler(message: telebot.types.Message) -> None:
   USER_MANAGER.reset_query_data(message.from_user.id, message.chat.id)
   USER_MANAGER.reset_button_data(message.from_user.id, message.chat.id)
-  studios_handler(message.from_user.id, message)
+  main_page_handler(message.from_user.id, message)
 
-def studios_handler(user_id: int, message: telebot.types.Message) -> None:
+def main_page_handler(user_id: int, message: telebot.types.Message) -> None:
   query_data = USER_MANAGER.get_query_data(user_id, message.chat.id)
-  text = query_data.get_query_str(include_studio=True)
-  text += '*Select the studio(s) to check*'
+  text = '*Schedule to check*\n'
+  text += query_data.get_query_str(include_studio=True, include_instructors=True, include_weeks=True, include_days=True)
 
-  rev_button = telebot.types.InlineKeyboardButton('Rev', callback_data='{"studios": "Rev", "step": "studios"}')
-  barrys_button = telebot.types.InlineKeyboardButton('Barrys', callback_data='{"studios": "Barrys", "step": "studios"}')
-  absolute_spin_button = telebot.types.InlineKeyboardButton('Absolute (Spin)', callback_data='{"studios": "Absolute (Spin)", "step": "studios"}')
-  absolute_pilates_button = telebot.types.InlineKeyboardButton('Absolute (Pilates)', callback_data='{"studios": "Absolute (Pilates)", "step": "studios"}')
-  ally_spin_button = telebot.types.InlineKeyboardButton('Ally (Spin)', callback_data='{"studios": "Ally (Spin)", "step": "studios"}')
-  ally_pilates_button = telebot.types.InlineKeyboardButton('Ally (Pilates)', callback_data='{"studios": "Ally (Pilates)", "step": "studios"}')
-  select_all_button = telebot.types.InlineKeyboardButton('Select All', callback_data='{"studios": "All", "step": "studios"}')
-  unselect_all_button = telebot.types.InlineKeyboardButton('Unselect All', callback_data='{"studios": "None", "step": "studios"}')
-  next_button = telebot.types.InlineKeyboardButton('Next ▶️', callback_data='{"step": "studios-next"}')
+  studios_button = telebot.types.InlineKeyboardButton('Studios', callback_data='{"step": "studios-selection"}')
+  instructors_button = telebot.types.InlineKeyboardButton('Instructors', callback_data='{"step": "instructors-selection"}')
+  weeks_button = telebot.types.InlineKeyboardButton('Weeks', callback_data='{"step": "weeks-selection"}')
+  days_button = telebot.types.InlineKeyboardButton('Days', callback_data='{"step": "days-selection"}')
+  next_button = telebot.types.InlineKeyboardButton('Get Schedule ▶️', callback_data='{"step": "get-schedule"}')
 
   keyboard = telebot.types.InlineKeyboardMarkup()
-  keyboard.add(rev_button, barrys_button)
-  keyboard.add(absolute_spin_button, absolute_pilates_button)
-  keyboard.add(ally_spin_button, ally_pilates_button)
-  keyboard.add(select_all_button, unselect_all_button)
+  keyboard.add(studios_button, instructors_button)
+  keyboard.add(weeks_button, days_button)
   keyboard.add(next_button)
   sent_msg = BOT.send_message(message.chat.id, text, reply_markup=keyboard, parse_mode='Markdown')
-
 
 @BOT.message_handler(commands=['instructors'])
 def instructors_list_handler(message: telebot.types.Message) -> None:
@@ -415,7 +484,7 @@ def nerd_handler(message: telebot.types.Message) -> None:
          "Days\n" \
          "\n" \
          "*Studio names*: rev, barrys, absolute (spin), absolute (pilates), ally (spin), ally (pilates)\n" \
-         "*Studio locations*: orchard, tjpg, bugis, suntec, raffles, centrepoint, i12, millenia walk, star vista, great world\n" \
+         "*Studio locations*: orchard, tjpg, bugis, suntec, raffles, centrepoint, i12, millenia walk, star vista, great world, cross street\n" \
          "*Instructors*: Use /instructors for list of instructors\n" \
          "\n" \
          "*e.g.*\n" \
@@ -564,44 +633,23 @@ def nerd_input_handler(message: telebot.types.Message) -> None:
 
 def locations_handler(user_id: int, message: telebot.types.Message):
   query_data = USER_MANAGER.get_query_data(user_id, message.chat.id)
-  text = query_data.get_query_str(include_studio=True)
-  text += '*Select the location(s) to check*'
+  text = '*Currently selected studio(s)*\n'
+  text += query_data.get_query_str(include_studio=True)
 
   sent_msg = BOT.send_message(
     message.chat.id, text, reply_markup=get_locations_keyboard(user_id, message.chat.id), parse_mode='Markdown')
   USER_MANAGER.update_button_data_locations_selection_message(user_id, message.chat.id, sent_msg)
 
-def weeks_handler(user_id: int, message: telebot.types.Message) -> None:
+def instructors_selection_handler(user_id: int, message: telebot.types.Message) -> None:
   query_data = USER_MANAGER.get_query_data(user_id, message.chat.id)
-  text = query_data.get_query_str(include_studio=True, include_instructors=True, include_weeks=True)
-  text += '*Select the number of weeks of classes to show*\n'
-  text += 'Absolute shows up to 1.5 weeks\nAlly shows up to 2 weeks\nBarrys shows up to 3 weeks\nRev shows up to 4 weeks\n'
+  if len(query_data.studios) == 0:
+    text = 'No studio(s) selected. Please select the studio(s) first'
+    sent_msg = BOT.send_message(message.chat.id, text, parse_mode='Markdown')
+    main_page_handler(user_id, message)
+    return
 
-  one_button = telebot.types.InlineKeyboardButton('1', callback_data='{"weeks": 1, "step": "weeks"}')
-  two_button = telebot.types.InlineKeyboardButton('2', callback_data='{"weeks": 2, "step": "weeks"}')
-  three_button = telebot.types.InlineKeyboardButton('3', callback_data='{"weeks": 3, "step": "weeks"}')
-  four_button = telebot.types.InlineKeyboardButton('4', callback_data='{"weeks": 4, "step": "weeks"}')
-  back_button = telebot.types.InlineKeyboardButton('◀️ Back', callback_data='{"step": "weeks-back"}')
-
-  keyboard = telebot.types.InlineKeyboardMarkup()
-  keyboard.add(one_button, two_button)
-  keyboard.add(three_button, four_button)
-  keyboard.add(back_button)
-  sent_msg = BOT.send_message(message.chat.id, text, reply_markup=keyboard, parse_mode='Markdown')
-
-def days_handler(user_id: int, message: telebot.types.Message) -> None:
-  query_data = USER_MANAGER.get_query_data(user_id, message.chat.id)
-  text = query_data.get_query_str(include_studio=True, include_instructors=True, include_weeks=True, include_days=True)
-  text += '*Select the day(s) to show classes of*'
-  USER_MANAGER.reset_button_data_days_buttons_map(user_id, message.chat.id)
-
-  sent_msg = BOT.send_message(message.chat.id, text, reply_markup=get_days_keyboard(user_id, message.chat.id), parse_mode='Markdown')
-  USER_MANAGER.update_button_data_days_selection_message(user_id, message.chat.id, sent_msg)
-
-def instructors_handler(user_id: int, message: telebot.types.Message) -> None:
-  query_data = USER_MANAGER.get_query_data(user_id, message.chat.id)
-  text = query_data.get_query_str(include_studio=True, include_instructors=True)
-  text += '*Select the studio to choose instructors*'
+  text = '*Currently selected instructor(s)*\n'
+  text += query_data.get_query_str(include_instructors=True)
 
   keyboard = telebot.types.InlineKeyboardMarkup()
   if 'Rev' in query_data.studios:
@@ -624,10 +672,9 @@ def instructors_handler(user_id: int, message: telebot.types.Message) -> None:
     keyboard.add(ally_pilates_instructors_button)
 
   show_instructors_button = telebot.types.InlineKeyboardButton('Show Names of Instructors', callback_data='{"step": "show-instructors"}')
-  next_button = telebot.types.InlineKeyboardButton('Next ▶️', callback_data='{"step": "instructors-next"}')
-  back_button = telebot.types.InlineKeyboardButton('◀️ Back', callback_data='{"step": "instructors-back"}')
+  next_button = telebot.types.InlineKeyboardButton('Next ▶️', callback_data='{"step": "main-page-handler"}')
   keyboard.add(show_instructors_button)
-  keyboard.add(back_button, next_button)
+  keyboard.add(next_button)
   sent_msg = BOT.send_message(message.chat.id, text, reply_markup=keyboard, parse_mode='Markdown')
 
 def update_cached_result_data() -> None:

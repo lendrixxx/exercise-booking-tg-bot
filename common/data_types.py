@@ -81,15 +81,15 @@ class ClassData:
 class StudioData:
   def __init__(self, locations: list[StudioLocation]=None, instructors: list[str]=None):
     self.locations = locations
-    self.instructors = [] if instructors is None else instructors
+    self.instructors = ['All'] if instructors is None else instructors
 
 
 class QueryData:
   def __init__(self, studios: dict[str, StudioData], current_studio: StudioType, weeks: int, days: list[str]):
-    self.studios = {} if studios is None else studios
+    self.studios = {} if studios is None else copy(studios)
     self.current_studio = current_studio
     self.weeks = weeks
-    self.days = days
+    self.days = copy(days)
 
   def get_studio_locations(self, studio_name: str) -> list[StudioLocation]:
     if studio_name not in self.studios:
@@ -113,6 +113,9 @@ class QueryData:
     if len(self.days) == 0:
       return 'None'
 
+    if len(self.days) == 7:
+      return 'All'
+
     return ', '.join(self.days)
 
   def get_selected_instructors_str(self) -> str:
@@ -126,20 +129,20 @@ class QueryData:
     return instructors_selected.rstrip()
 
   def get_query_str(self, include_studio: bool=False, include_instructors: bool=False, include_weeks: bool=False, include_days: bool=False) -> str:
-    text = '*Schedule to check*\n'
+    query_str_list = []
     if include_studio:
-      text += f'Studio(s):\n{self.get_selected_studios_str()}\n\n'
+      query_str_list.append(f'Studio(s):\n{self.get_selected_studios_str()}\n')
 
     if include_instructors:
-      text += f'Instructor(s)\n{self.get_selected_instructors_str()}\n\n'
+      query_str_list.append(f'Instructor(s):\n{self.get_selected_instructors_str()}\n')
 
     if include_weeks:
-      text += f'Week(s): {self.weeks}\n\n'
+      query_str_list.append(f'Week(s): {self.weeks}\n')
 
     if include_days:
-      text += f'Day(s): {self.get_selected_days_str()}\n\n'
+      query_str_list.append(f'Day(s): {self.get_selected_days_str()}\n')
 
-    return text
+    return '\n'.join(query_str_list)
 
   def is_rev_in_query(self) -> bool:
     return "Rev" in self.studios
