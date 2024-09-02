@@ -61,7 +61,7 @@ def get_locations_keyboard(user_id: int, chat_id: int) -> telebot.types.InlineKe
   locations_keyboard = telebot.types.InlineKeyboardMarkup()
   if query_data.current_studio == 'Rev':
     locations_keyboard.add(button_data.studios_locations_buttons_map['Rev']['Bugis'], button_data.studios_locations_buttons_map['Rev']['Orchard'])
-    locations_keyboard.add(button_data.studios_locations_buttons_map['Rev']['Suntec'], button_data.studios_locations_buttons_map['Rev']['TJPG'])
+    locations_keyboard.add(button_data.studios_locations_buttons_map['Rev']['TJPG'])
   elif query_data.current_studio == 'Barrys':
     locations_keyboard.add(button_data.studios_locations_buttons_map['Barrys']['Orchard'], button_data.studios_locations_buttons_map['Barrys']['Raffles'])
   elif query_data.current_studio == 'Absolute (Spin)':
@@ -484,7 +484,7 @@ def nerd_handler(message: telebot.types.Message) -> None:
          "Days\n" \
          "\n" \
          "*Studio names*: rev, barrys, absolute (spin), absolute (pilates), ally (spin), ally (pilates)\n" \
-         "*Studio locations*: orchard, tjpg, bugis, suntec, raffles, centrepoint, i12, millenia walk, star vista, great world, cross street\n" \
+         "*Studio locations*: orchard, tjpg, bugis, raffles, centrepoint, i12, millenia walk, star vista, great world, cross street\n" \
          "*Instructors*: Use /instructors for list of instructors\n" \
          "\n" \
          "*e.g.*\n" \

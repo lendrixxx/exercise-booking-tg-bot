@@ -79,7 +79,7 @@ def get_rev_schedule(locations: list[StudioLocation], start_date: str, end_date:
   result = ResultData()
   # REST API can only select one location at a time
   if 'All' in locations:
-    locations = ['Bugis', 'Orchard', 'Suntec', 'TJPG']
+    locations = ['Bugis', 'Orchard', 'TJPG']
 
   if start_date == '':
     start_date = datetime.now(pytz.timezone('Asia/Singapore'))

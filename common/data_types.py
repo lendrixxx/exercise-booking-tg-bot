@@ -19,7 +19,6 @@ class StudioLocation(str, Enum):
   Orchard = 'Orchard'
   TJPG = 'TJPG'
   Bugis = 'Bugis'
-  Suntec = 'Suntec'
   Raffles = 'Raffles'
   Centrepoint = 'Centrepoint'
   i12 = 'i12'
@@ -36,7 +35,7 @@ class ClassAvailability(str, Enum):
   Null = 'Null'
 
 STUDIO_LOCATIONS_MAP = {
-  StudioType.Rev: [StudioLocation.Orchard, StudioLocation.TJPG, StudioLocation.Bugis, StudioLocation.Suntec],
+  StudioType.Rev: [StudioLocation.Orchard, StudioLocation.TJPG, StudioLocation.Bugis],
   StudioType.Barrys: [StudioLocation.Orchard, StudioLocation.Raffles],
   StudioType.AbsoluteSpin: [StudioLocation.Centrepoint, StudioLocation.i12, StudioLocation.MilleniaWalk, StudioLocation.Raffles, StudioLocation.StarVista],
   StudioType.AbsolutePilates: [StudioLocation.Centrepoint, StudioLocation.GreatWorld, StudioLocation.i12, StudioLocation.Raffles, StudioLocation.StarVista],

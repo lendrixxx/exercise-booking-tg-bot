@@ -52,7 +52,6 @@ class ButtonData:
       'Rev' : {
         'Bugis' : InlineKeyboardButton('Bugis ✅' if selected else 'Bugis', callback_data='{"location": "Bugis", "step": "locations"}'),
         'Orchard' : InlineKeyboardButton('Orchard ✅' if selected else 'Orchard', callback_data='{"location": "Orchard", "step": "locations"}'),
-        'Suntec' : InlineKeyboardButton('Suntec ✅' if selected else 'Suntec', callback_data='{"location": "Suntec", "step": "locations"}'),
         'TJPG' : InlineKeyboardButton('TJPG ✅' if selected else 'TJPG', callback_data='{"location": "TJPG", "step": "locations"}'),
       },
       'Barrys' : {
