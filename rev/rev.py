@@ -5,7 +5,7 @@ import os
 import pytz
 import requests
 from bs4 import BeautifulSoup
-from common.data_types import ClassAvailability, ClassData, RESPONSE_AVAILABILITY_MAP, ResultData, StudioLocation, StudioType
+from common.data_types import CapacityInfo, ClassAvailability, ClassData, RESPONSE_AVAILABILITY_MAP, ResultData, StudioLocation, StudioType
 from copy import copy
 from datetime import datetime, timedelta
 from rev.data import ROOM_NAME_TO_STUDIO_LOCATION_MAP, SITE_ID_MAP
@@ -60,7 +60,13 @@ def parse_get_schedule_response(response: requests.models.Response, days: list[s
         name=class_name,
         instructor=instructor_str,
         time=datetime.strftime(class_time, '%I:%M %p'),
-        availability=RESPONSE_AVAILABILITY_MAP[data['sessionStatus']])
+        availability=RESPONSE_AVAILABILITY_MAP[data['sessionStatus']],
+        capacity_info=CapacityInfo(
+          has_info=True,
+          capacity=data['capacity'],
+          remaining=data['remaining'],
+          waitlist_capacity=data['waitlistCapacity'],
+          waitlist_reserved=data['waitlistReserved']))
 
       if class_date not in result_dict:
         result_dict[class_date] = []

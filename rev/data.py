@@ -10,6 +10,8 @@ ROOM_NAME_TO_STUDIO_LOCATION_MAP = {
   'Revolution - Bugis' : StudioLocation.Bugis,
   'Revolution - Orchard' : StudioLocation.Orchard,
   'Revolution - Tanjong Pagar' : StudioLocation.TJPG,
+  'TP - Nov 2024' : StudioLocation.TJPG,
+  'Orchard - Nov 2024' : StudioLocation.Orchard,
 }
 
 SITE_ID_MAP = {

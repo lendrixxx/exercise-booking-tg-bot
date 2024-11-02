@@ -2,7 +2,7 @@ import calendar
 import logging
 import requests
 from bs4 import BeautifulSoup
-from common.data_types import ClassAvailability, ClassData, RESPONSE_AVAILABILITY_MAP, ResultData, StudioLocation, StudioType
+from common.data_types import CapacityInfo, ClassAvailability, ClassData, RESPONSE_AVAILABILITY_MAP, ResultData, StudioLocation, StudioType
 from copy import copy
 from datetime import datetime, timedelta
 
@@ -61,7 +61,14 @@ def parse_get_schedule_response(response, week: int, days: list[str]) -> dict[da
       else:
         availability = RESPONSE_AVAILABILITY_MAP[reserve_table_data_div_class_list[1]]
 
-      class_details = ClassData(studio=StudioType.AllySpin, location=StudioLocation.CrossStreet, name='', instructor='', time='', availability=availability)
+      class_details = ClassData(
+        studio=StudioType.AllySpin,
+        location=StudioLocation.CrossStreet,
+        name='',
+        instructor='',
+        time='',
+        availability=availability,
+        capacity_info=CapacityInfo())
       for reserve_table_data_div_span in reserve_table_data_div.find_all('span'):
         reserve_table_data_div_span_class_list = reserve_table_data_div_span.get('class')
         if len(reserve_table_data_div_span_class_list) == 0:

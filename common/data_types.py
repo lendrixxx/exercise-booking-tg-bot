@@ -55,14 +55,23 @@ RESPONSE_AVAILABILITY_MAP = {
 
 SORTED_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
+class CapacityInfo:
+  def __init__(self, has_info:bool=False, capacity:int=0, remaining:int=0, waitlist_capacity:int=0, waitlist_reserved:int=0):
+    self.has_info = has_info
+    self.capacity = capacity
+    self.remaining = remaining
+    self.waitlist_capacity = waitlist_capacity
+    self.waitlist_reserved = waitlist_reserved
+
 class ClassData:
-  def __init__(self, studio:StudioType, location:StudioLocation, name:str, instructor:str, time:str, availability:ClassAvailability):
+  def __init__(self, studio:StudioType, location:StudioLocation, name:str, instructor:str, time:str, availability:ClassAvailability, capacity_info:CapacityInfo):
     self.studio = studio
     self.location = location
     self.name = name
     self.instructor = instructor
     self.time = time
     self.availability = availability
+    self.capacity_info = capacity_info
 
   def set_time(self, time:str):
     last_pos = time.find('M') + 1
@@ -238,7 +247,15 @@ class ResultData:
         elif class_details.availability == ClassAvailability.Full:
           availability_str = '[F] '
 
-        result_str += f'*{availability_str + class_details.time}* - {class_details.name} @ {class_details.location} ({class_details.instructor})\n'
+        result_str += f'*{availability_str + class_details.time}* - {class_details.name} @ {class_details.location} ({class_details.instructor})'
+
+        if class_details.capacity_info.has_info:
+          if class_details.availability == ClassAvailability.Waitlist:
+            result_str += f' - {class_details.capacity_info.waitlist_reserved} Rider(s) on Waitlist'
+          else:
+            result_str += f' - {class_details.capacity_info.remaining} Spot(s) Remaining'
+
+        result_str += '\n'
       result_str += '\n'
 
     return result_str
