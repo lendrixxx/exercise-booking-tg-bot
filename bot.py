@@ -678,21 +678,56 @@ def instructors_selection_handler(user_id: int, message: telebot.types.Message) 
   sent_msg = BOT.send_message(message.chat.id, text, reply_markup=keyboard, parse_mode='Markdown')
 
 def update_cached_result_data() -> None:
+  def _get_absolute_schedule(mutex, updated_cached_result_data):
+    global ABSOLUTE_INSTRUCTORID_MAP, ABSOLUTE_INSTRUCTOR_NAMES
+    ABSOLUTE_INSTRUCTORID_MAP = get_absolute_instructorid_map()
+    ABSOLUTE_INSTRUCTOR_NAMES = [instructor.lower() for instructor in list(ABSOLUTE_INSTRUCTORID_MAP)]
+    absolute_schedule = get_absolute_schedule(locations=[StudioLocation.All], weeks=2, days=['All'], instructors=['All'], instructorid_map=ABSOLUTE_INSTRUCTORID_MAP)
+    with mutex:
+      updated_cached_result_data += absolute_schedule
+
+
+  def _get_ally_schedule(mutex, updated_cached_result_data):
+    global ALLY_INSTRUCTORID_MAP, ALLY_INSTRUCTOR_NAMES
+    ALLY_INSTRUCTORID_MAP = get_ally_instructorid_map()
+    ALLY_INSTRUCTOR_NAMES = [instructor.lower() for instructor in list(ALLY_INSTRUCTORID_MAP)]
+    ally_schedule = get_ally_schedule(weeks=2, days=['All'], instructors=['All'], instructorid_map=ALLY_INSTRUCTORID_MAP)
+    with mutex:
+      updated_cached_result_data += ally_schedule
+
+  def _get_barrys_schedule(mutex, updated_cached_result_data):
+    global BARRYS_INSTRUCTORID_MAP, BARRYS_INSTRUCTOR_NAMES
+    BARRYS_INSTRUCTORID_MAP = get_barrys_instructorid_map()
+    BARRYS_INSTRUCTOR_NAMES = [instructor.lower() for instructor in list(BARRYS_INSTRUCTORID_MAP)]
+    barrys_schedule = get_barrys_schedule(locations=[StudioLocation.All], weeks=3, days=['All'], instructors=['All'], instructorid_map=BARRYS_INSTRUCTORID_MAP)
+    with mutex:
+      updated_cached_result_data += barrys_schedule
+
+  def _get_rev_schedule(mutex, updated_cached_result_data):
+    global REV_INSTRUCTORID_MAP, REV_INSTRUCTOR_NAMES
+    REV_INSTRUCTOR_NAMES = [instructor.lower() for instructor in list(REV_INSTRUCTORID_MAP)]
+    REV_INSTRUCTORID_MAP = get_rev_instructorid_map()
+    rev_schedule = get_rev_schedule(locations=[StudioLocation.All], start_date='', end_date='', days=['All'], instructorid_map=REV_INSTRUCTORID_MAP)
+    with mutex:
+      updated_cached_result_data += rev_schedule
+
   LOGGER.info('Updating cached result data...')
-  global ABSOLUTE_INSTRUCTORID_MAP, ALLY_INSTRUCTORID_MAP, BARRYS_INSTRUCTORID_MAP, REV_INSTRUCTORID_MAP
-  global ABSOLUTE_INSTRUCTOR_NAMES, ALLY_INSTRUCTOR_NAMES, BARRYS_INSTRUCTOR_NAMES, REV_INSTRUCTOR_NAMES
-  ABSOLUTE_INSTRUCTORID_MAP = get_absolute_instructorid_map()
-  ALLY_INSTRUCTORID_MAP = get_ally_instructorid_map()
-  BARRYS_INSTRUCTORID_MAP = get_barrys_instructorid_map()
-  REV_INSTRUCTORID_MAP = get_rev_instructorid_map()
-  ABSOLUTE_INSTRUCTOR_NAMES = [instructor.lower() for instructor in list(ABSOLUTE_INSTRUCTORID_MAP)]
-  ALLY_INSTRUCTOR_NAMES = [instructor.lower() for instructor in list(ALLY_INSTRUCTORID_MAP)]
-  BARRYS_INSTRUCTOR_NAMES = [instructor.lower() for instructor in list(BARRYS_INSTRUCTORID_MAP)]
-  REV_INSTRUCTOR_NAMES = [instructor.lower() for instructor in list(REV_INSTRUCTORID_MAP)]
-  updated_cached_result_data = get_absolute_schedule(locations=[StudioLocation.All], weeks=2, days=['All'], instructors=['All'], instructorid_map=ABSOLUTE_INSTRUCTORID_MAP)
-  updated_cached_result_data += get_ally_schedule(weeks=2, days=['All'], instructors=['All'], instructorid_map=ALLY_INSTRUCTORID_MAP)
-  updated_cached_result_data += get_barrys_schedule(locations=[StudioLocation.All], weeks=3, days=['All'], instructors=['All'], instructorid_map=BARRYS_INSTRUCTORID_MAP)
-  updated_cached_result_data += get_rev_schedule(locations=[StudioLocation.All], start_date='', end_date='', days=['All'], instructorid_map=REV_INSTRUCTORID_MAP)
+  updated_cached_result_data = ResultData()
+  mutex = threading.Lock()
+  absolute_thread = threading.Thread(target=_get_absolute_schedule, name='absolute_thread', args=(mutex, updated_cached_result_data,))
+  ally_thread = threading.Thread(target=_get_ally_schedule, name='ally_thread', args=(mutex, updated_cached_result_data,))
+  barrys_thread = threading.Thread(target=_get_barrys_schedule, name='barrys_thread', args=(mutex, updated_cached_result_data,))
+  rev_thread = threading.Thread(target=_get_rev_schedule, name='rev_thread', args=(mutex, updated_cached_result_data,))
+
+  absolute_thread.start()
+  ally_thread.start()
+  barrys_thread.start()
+  rev_thread.start()
+  absolute_thread.join()
+  ally_thread.join()
+  barrys_thread.join()
+  rev_thread.join()
+
   global CACHED_RESULT_DATA
   CACHED_RESULT_DATA = updated_cached_result_data
   LOGGER.info('Successfully updated cached result data!')
