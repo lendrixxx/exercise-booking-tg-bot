@@ -34,8 +34,12 @@ def parse_get_schedule_response(response: requests.models.Response, days: list[s
     if response_json['success'] == False:
       LOGGER.warning(f'Failed to get schedule - API callback failed')
       return {}
+  except Exception as e:
+    LOGGER.warning(f'Failed to get schedule - {e}')
+    return {}
 
-    for data in response_json['data']:
+  for data in response_json['data']:
+    try:
       if data['sessionStatus'] == 'complete':
         continue
 
@@ -72,11 +76,10 @@ def parse_get_schedule_response(response: requests.models.Response, days: list[s
         result_dict[class_date] = []
       result_dict[class_date].append(copy(class_details))
 
-    result_dict = {key:val for key, val in result_dict.items() if val}
+    except Exception as e:
+      LOGGER.warning(f'Failed to get details of class - {e}. Data: {data}')
 
-  except Exception as e:
-    LOGGER.warning(f'Failed to get schedule - {e}')
-    return {}
+    result_dict = {key:val for key, val in result_dict.items() if val}
 
   return result_dict
 
