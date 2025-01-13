@@ -630,6 +630,8 @@ def nerd_input_handler(message: telebot.types.Message) -> None:
 
       if len(invalid_instructors) > 0:
         selected_instructors = [instructor for instructor in selected_instructors if instructor not in invalid_instructors]
+        print('[test]')
+        print(instructor_list)
         text = f'Failed to find instructor(s): {", ".join(invalid_instructors)}'
         sent_msg = BOT.send_message(message.chat.id, text, parse_mode='Markdown')
 
@@ -756,8 +758,8 @@ def update_cached_result_data() -> None:
 
   def _get_rev_schedule(mutex, updated_cached_result_data):
     global REV_INSTRUCTORID_MAP, REV_INSTRUCTOR_NAMES
-    REV_INSTRUCTOR_NAMES = [instructor.lower() for instructor in list(REV_INSTRUCTORID_MAP)]
     REV_INSTRUCTORID_MAP = get_rev_instructorid_map()
+    REV_INSTRUCTOR_NAMES = [instructor.lower() for instructor in list(REV_INSTRUCTORID_MAP)]
     rev_schedule = get_rev_schedule(locations=[StudioLocation.All], start_date='', end_date='', days=['All'], instructorid_map=REV_INSTRUCTORID_MAP)
     with mutex:
       updated_cached_result_data += rev_schedule
