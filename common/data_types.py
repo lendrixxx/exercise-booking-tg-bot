@@ -93,13 +93,14 @@ class StudioData:
 
 
 class QueryData:
-  def __init__(self, studios: dict[str, StudioData], current_studio: StudioType, weeks: int, days: list[str], start_time_from: str, start_time_to: str):
+  def __init__(self, studios: dict[str, StudioData], current_studio: StudioType, weeks: int, days: list[str], start_time_from: str, start_time_to: str, class_name_filter: str):
     self.studios = {} if studios is None else copy(studios)
     self.current_studio = current_studio
     self.weeks = weeks
     self.days = copy(days)
     self.start_time_from = datetime.strptime(start_time_from, '%H%M')
     self.start_time_to = datetime.strptime(start_time_to, '%H%M')
+    self.class_name_filter = class_name_filter
 
   def get_studio_locations(self, studio_name: str) -> list[StudioLocation]:
     if studio_name not in self.studios:
@@ -131,6 +132,12 @@ class QueryData:
   def get_selected_time_str(self) -> str:
     return self.start_time_from.strftime('%H%M') + ' - ' + self.start_time_to.strftime('%H%M')
 
+  def get_selected_class_name_filter_str(self) -> str:
+    if self.class_name_filter == '':
+      return 'None'
+
+    return self.class_name_filter
+
   def get_selected_instructors_str(self) -> str:
     if len(self.studios) == 0:
       return 'None'
@@ -141,7 +148,7 @@ class QueryData:
       instructors_selected += f"{studio}: {INSTRUCTOR_NAMES if len(INSTRUCTOR_NAMES) > 0 else 'None'}\n"
     return instructors_selected.rstrip()
 
-  def get_query_str(self, include_studio: bool=False, include_instructors: bool=False, include_weeks: bool=False, include_days: bool=False, include_time: bool=False) -> str:
+  def get_query_str(self, include_studio: bool=False, include_instructors: bool=False, include_weeks: bool=False, include_days: bool=False, include_time: bool=False, include_class_name_filter: bool=False) -> str:
     query_str_list = []
     if include_studio:
       query_str_list.append(f'Studio(s):\n{self.get_selected_studios_str()}\n')
@@ -157,6 +164,9 @@ class QueryData:
 
     if include_time:
       query_str_list.append(f'Time: {self.get_selected_time_str()}\n')
+
+    if include_class_name_filter:
+      query_str_list.append(f'Class Name Filter: {self.get_selected_class_name_filter_str()}\n')
 
     return '\n'.join(query_str_list)
 
@@ -216,6 +226,9 @@ class ResultData:
         if date_to_check in self.classes:
           for class_details in self.classes[date_to_check]:
             if class_details.studio not in query.studios:
+              continue
+
+            if query.class_name_filter != '' and query.class_name_filter.lower() not in class_details.name.lower():
               continue
 
             query_locations = query.get_studio_locations(class_details.studio)
