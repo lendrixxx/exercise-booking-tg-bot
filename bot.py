@@ -1,6 +1,7 @@
 import absolute
 import ally
 import barrys
+from datetime import datetime
 import logging
 import os
 import rev
@@ -163,6 +164,40 @@ def days_selection_handler(user_id: int, message: telebot.types.Message) -> None
 
   sent_msg = BOT.send_message(message.chat.id, text, reply_markup=get_days_keyboard(user_id, message.chat.id), parse_mode='Markdown')
   USER_MANAGER.update_button_data_days_selection_message(user_id, message.chat.id, sent_msg)
+
+@BOT.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'time-selection')
+def time_selection_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
+  start_time_from_selection_handler(query.from_user.id, query.message)
+
+def start_time_from_selection_handler(user_id: int, message: telebot.types.Message) -> None:
+  text = 'Enter time to check from in 24h format\ne.g. *0700*'
+  sent_msg = BOT.send_message(message.chat.id, text, parse_mode='Markdown')
+  BOT.register_next_step_handler(sent_msg, start_time_from_input_handler, user_id)
+
+def start_time_from_input_handler(message: telebot.types.Message, user_id: int) -> None:
+  query_data = USER_MANAGER.get_query_data(user_id, message.chat.id)
+  try:
+    query_data.start_time_from = datetime.strptime(message.text, '%H%M')
+    start_time_to_selection_handler(user_id, message)
+  except Exception as e:
+    text = f'Invalid time "{message.text}" entered: {str(e)}'
+    sent_msg = BOT.send_message(message.chat.id, text, parse_mode='Markdown')
+    time_selection_handler(user_id, message)
+
+def start_time_to_selection_handler(user_id: int, message: telebot.types.Message) -> None:
+  text = 'Enter time to check to in 24h format\ne.g. *1300*'
+  sent_msg = BOT.send_message(message.chat.id, text, parse_mode='Markdown')
+  BOT.register_next_step_handler(sent_msg, start_time_to_input_handler, user_id)
+
+def start_time_to_input_handler(message: telebot.types.Message, user_id: int) -> None:
+  query_data = USER_MANAGER.get_query_data(user_id, message.chat.id)
+  try:
+    query_data.start_time_to = datetime.strptime(message.text, '%H%M')
+    main_page_handler(user_id, message)
+  except Exception as e:
+    text = f'Invalid time "{message.text}" entered: {str(e)}'
+    sent_msg = BOT.send_message(message.chat.id, text, parse_mode='Markdown')
+    time_selection_handler(user_id, message)
 
 @BOT.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'get-schedule')
 def get_schedule_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
@@ -351,6 +386,7 @@ def days_next_callback_query_handler(query: telebot.types.CallbackQuery) -> None
     return
 
   main_page_handler(query.from_user.id, query.message)
+
 @BOT.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'rev-instructors')
 def rev_instructors_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
   text = 'Enter instructor names separated by a comma\ne.g.: *chloe*, *jerlyn*, *zai*\nEnter "*all*" to check for all instructors'
@@ -448,17 +484,18 @@ def start_handler(message: telebot.types.Message) -> None:
 def main_page_handler(user_id: int, message: telebot.types.Message) -> None:
   query_data = USER_MANAGER.get_query_data(user_id, message.chat.id)
   text = '*Schedule to check*\n'
-  text += query_data.get_query_str(include_studio=True, include_instructors=True, include_weeks=True, include_days=True)
+  text += query_data.get_query_str(include_studio=True, include_instructors=True, include_weeks=True, include_days=True, include_time=True)
 
   studios_button = telebot.types.InlineKeyboardButton('Studios', callback_data='{"step": "studios-selection"}')
   instructors_button = telebot.types.InlineKeyboardButton('Instructors', callback_data='{"step": "instructors-selection"}')
   weeks_button = telebot.types.InlineKeyboardButton('Weeks', callback_data='{"step": "weeks-selection"}')
   days_button = telebot.types.InlineKeyboardButton('Days', callback_data='{"step": "days-selection"}')
+  time_button = telebot.types.InlineKeyboardButton('Time', callback_data='{"step": "time-selection"}')
   next_button = telebot.types.InlineKeyboardButton('Get Schedule ▶️', callback_data='{"step": "get-schedule"}')
 
   keyboard = telebot.types.InlineKeyboardMarkup()
   keyboard.add(studios_button, instructors_button)
-  keyboard.add(weeks_button, days_button)
+  keyboard.add(weeks_button, days_button, time_button)
   keyboard.add(next_button)
   sent_msg = BOT.send_message(message.chat.id, text, reply_markup=keyboard, parse_mode='Markdown')
 
@@ -482,6 +519,8 @@ def nerd_handler(message: telebot.types.Message) -> None:
          "(Repeat above for multiple studios)\n" \
          "Weeks\n" \
          "Days\n" \
+         "Start Time From (24h Format)\n" \
+         "Start Time To (24h Format)\n" \
          "\n" \
          "*Studio names*: rev, barrys, absolute (spin), absolute (pilates), ally (spin), ally (pilates)\n" \
          "*Studio locations*: orchard, tjpg, bugis, raffles, centrepoint, i12, millenia walk, star vista, great world, cross street\n" \
@@ -495,7 +534,9 @@ def nerd_handler(message: telebot.types.Message) -> None:
          "raffles\n" \
          "ria\n" \
          "2\n" \
-         "monday, wednesday, saturday\n"
+         "monday, wednesday, saturday\n" \
+         "0700\n" \
+         "0900\n"
 
   sent_msg = BOT.send_message(message.chat.id, text, parse_mode='Markdown')
   BOT.register_next_step_handler(sent_msg, nerd_input_handler)
@@ -512,6 +553,8 @@ def nerd_input_handler(message: telebot.types.Message) -> None:
   Comma separated instructor names (If selecting multiple studios)
   Weeks
   Days
+  Start Time From
+  Start Time To
 
   e.g.
   /nerd
@@ -523,20 +566,22 @@ def nerd_input_handler(message: telebot.types.Message) -> None:
   ria
   2
   monday, wednesday, saturday
+  0700
+  0900
   '''
   global ABSOLUTE_INSTRUCTOR_NAMES, ALLY_INSTRUCTOR_NAMES, BARRYS_INSTRUCTOR_NAMES, REV_INSTRUCTOR_NAMES
   input_str_list = message.text.splitlines()
 
-  # Weeks and days = 2 items. Remaining items should be divisible by 3 (studio name, locations, instructors)
-  if (len(input_str_list) - 2) % 3 != 0:
+  # Weeks, days, start time from, and start time to = 4 items. Remaining items should be divisible by 3 (studio name, locations, instructors)
+  if (len(input_str_list) - 4) % 3 != 0:
     BOT.send_message(message.chat.id, 'Failed to handle query. Unexpected format received.', parse_mode='Markdown')
     return
 
   # Loop through studios
-  query = QueryData(studios={}, current_studio=StudioType.Null, weeks=0, days=[])
+  query = QueryData(studios={}, current_studio=StudioType.Null, weeks=0, days=[], start_time_from='0000', start_time_to='2359')
   current_studio = StudioType.Null
   current_studio_locations = []
-  for index, input_str in enumerate(input_str_list[:-2]):
+  for index, input_str in enumerate(input_str_list[:-4]):
     step = index % 3
     if step == 0: # Studio name
       selected_studio = None
@@ -596,13 +641,13 @@ def nerd_input_handler(message: telebot.types.Message) -> None:
 
   # Get number of weeks
   try:
-    query.weeks = int(input_str_list[-2])
+    query.weeks = int(input_str_list[-4])
   except:
     BOT.send_message(message.chat.id, f'Failed to handle query. Invalid input for \'weeks\'. Expected number, got {input_str_list[-2]}', parse_mode='Markdown')
     return
 
   # Get list of days
-  query.days = [x.strip().capitalize() for x in input_str_list[-1].split(',')]
+  query.days = [x.strip().capitalize() for x in input_str_list[-3].split(',')]
   if 'All' in query.days:
     query.days = ['All']
   else:
@@ -610,6 +655,12 @@ def nerd_input_handler(message: telebot.types.Message) -> None:
       if selected_day.capitalize() not in SORTED_DAYS:
         BOT.send_message(message.chat.id, f'Failed to handle query. Invalid input for \'days\'. Unknown day {selected_day}', parse_mode='Markdown')
         return
+
+  # Get start time from
+  query.start_time_from = datetime.strptime(input_str_list[-2], '%H%M')
+
+  # Get start time to
+  query.start_time_to = datetime.strptime(input_str_list[-1], '%H%M')
 
   result = CACHED_RESULT_DATA.get_data(query)
 

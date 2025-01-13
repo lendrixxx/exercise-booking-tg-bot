@@ -98,7 +98,7 @@ class UserManager:
     self.user_button_data = {}
 
   def reset_query_data(self, user_id, chat_id):
-    self.user_query_data[(user_id, chat_id)] = QueryData(studios={}, current_studio=StudioType.Null, weeks=1, days=SORTED_DAYS)
+    self.user_query_data[(user_id, chat_id)] = QueryData(studios={}, current_studio=StudioType.Null, weeks=1, days=SORTED_DAYS, start_time_from='0000', start_time_to='2359')
 
   def reset_button_data(self, user_id, chat_id):
     self.user_button_data[(user_id, chat_id)] = ButtonData()

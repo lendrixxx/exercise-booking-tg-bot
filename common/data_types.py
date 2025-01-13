@@ -93,11 +93,13 @@ class StudioData:
 
 
 class QueryData:
-  def __init__(self, studios: dict[str, StudioData], current_studio: StudioType, weeks: int, days: list[str]):
+  def __init__(self, studios: dict[str, StudioData], current_studio: StudioType, weeks: int, days: list[str], start_time_from: str, start_time_to: str):
     self.studios = {} if studios is None else copy(studios)
     self.current_studio = current_studio
     self.weeks = weeks
     self.days = copy(days)
+    self.start_time_from = datetime.strptime(start_time_from, '%H%M')
+    self.start_time_to = datetime.strptime(start_time_to, '%H%M')
 
   def get_studio_locations(self, studio_name: str) -> list[StudioLocation]:
     if studio_name not in self.studios:
@@ -126,6 +128,9 @@ class QueryData:
 
     return ', '.join(self.days)
 
+  def get_selected_time_str(self) -> str:
+    return self.start_time_from.strftime('%H%M') + ' - ' + self.start_time_to.strftime('%H%M')
+
   def get_selected_instructors_str(self) -> str:
     if len(self.studios) == 0:
       return 'None'
@@ -136,7 +141,7 @@ class QueryData:
       instructors_selected += f"{studio}: {INSTRUCTOR_NAMES if len(INSTRUCTOR_NAMES) > 0 else 'None'}\n"
     return instructors_selected.rstrip()
 
-  def get_query_str(self, include_studio: bool=False, include_instructors: bool=False, include_weeks: bool=False, include_days: bool=False) -> str:
+  def get_query_str(self, include_studio: bool=False, include_instructors: bool=False, include_weeks: bool=False, include_days: bool=False, include_time: bool=False) -> str:
     query_str_list = []
     if include_studio:
       query_str_list.append(f'Studio(s):\n{self.get_selected_studios_str()}\n')
@@ -149,6 +154,9 @@ class QueryData:
 
     if include_days:
       query_str_list.append(f'Day(s): {self.get_selected_days_str()}\n')
+
+    if include_time:
+      query_str_list.append(f'Time: {self.get_selected_time_str()}\n')
 
     return '\n'.join(query_str_list)
 
@@ -220,10 +228,15 @@ class ResultData:
             if not is_by_instructor:
               continue
 
+            class_time = datetime.strptime(class_details.time,'%I:%M %p')
             if week == 0 and day == 0: # Skip classes that have already ended
-              class_time = datetime.strptime(class_details.time,'%I:%M %p')
               if current_sg_time.hour > class_time.hour or current_sg_time.hour == class_time.hour and current_sg_time.minute > class_time.minute:
                 continue
+
+            query_time_from_later_than_class_time = query.start_time_from.hour > class_time.hour or query.start_time_from.hour == class_time.hour and query.start_time_from.minute > class_time.minute
+            query_time_to_earlier_than_class_time = query.start_time_to.hour < class_time.hour or query.start_time_to.hour == class_time.hour and query.start_time_to.minute < class_time.minute
+            if query_time_from_later_than_class_time or query_time_to_earlier_than_class_time:
+              continue
 
             classes.setdefault(date_to_check, []).append(class_details)
         date_to_check = date_to_check + timedelta(days=1)
