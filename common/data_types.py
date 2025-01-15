@@ -170,22 +170,6 @@ class QueryData:
 
     return '\n'.join(query_str_list)
 
-  def is_rev_in_query(self) -> bool:
-    return "Rev" in self.studios
-
-  def is_barrys_in_query(self) -> bool:
-    return "Barrys" in self.studios
-
-  def has_instructors_selected(self) -> bool:
-    if self.is_rev_in_query():
-      if len(self.studios['Rev'].instructors) == 0:
-        return False
-    if self.is_barrys_in_query():
-      if len(self.studios['Barrys'].instructors) == 0:
-        return False
-
-    return True
-
 
 class ResultData:
   def __init__(self, classes: dict[datetime.date, list[ClassData]]=None):
