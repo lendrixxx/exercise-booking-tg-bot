@@ -93,13 +93,12 @@ class StudioData:
 
 
 class QueryData:
-  def __init__(self, studios: dict[str, StudioData], current_studio: StudioType, weeks: int, days: list[str], start_time_from: str, start_time_to: str, class_name_filter: str):
+  def __init__(self, studios: dict[str, StudioData], current_studio: StudioType, weeks: int, days: list[str], start_times: list[tuple[datetime.date, datetime.date]], class_name_filter: str):
     self.studios = {} if studios is None else copy(studios)
     self.current_studio = current_studio
     self.weeks = weeks
     self.days = copy(days)
-    self.start_time_from = datetime.strptime(start_time_from, '%H%M')
-    self.start_time_to = datetime.strptime(start_time_to, '%H%M')
+    self.start_times = copy(start_times)
     self.class_name_filter = class_name_filter
 
   def get_studio_locations(self, studio_name: str) -> list[StudioLocation]:
@@ -115,10 +114,10 @@ class QueryData:
     if len(self.studios) == 0:
       return 'None'
 
-    studios_selected = ""
+    studios_selected = ''
     for studio in self.studios:
-      studios_selected += f"{studio} - {', '.join(self.studios[studio].locations)}\n"
-    return studios_selected[:-1]
+      studios_selected += f'{studio} - {", ".join(self.studios[studio].locations)}\n'
+    return studios_selected.rstrip()
 
   def get_selected_days_str(self) -> str:
     if len(self.days) == 0:
@@ -130,7 +129,13 @@ class QueryData:
     return ', '.join(self.days)
 
   def get_selected_time_str(self) -> str:
-    return self.start_time_from.strftime('%H%M') + ' - ' + self.start_time_to.strftime('%H%M')
+    if len(self.start_times) == 0:
+      return 'None'
+
+    selected_times = ''
+    for start_time_from, start_time_to in self.start_times:
+      selected_times += f'{start_time_from.strftime("%H%M")} - {start_time_to.strftime("%H%M")}\n'
+    return selected_times.rstrip()
 
   def get_selected_class_name_filter_str(self) -> str:
     if self.class_name_filter == '':
@@ -142,10 +147,10 @@ class QueryData:
     if len(self.studios) == 0:
       return 'None'
 
-    instructors_selected = ""
+    instructors_selected = ''
     for studio in self.studios:
       INSTRUCTOR_NAMES = ', '.join(self.studios[studio].instructors)
-      instructors_selected += f"{studio}: {INSTRUCTOR_NAMES if len(INSTRUCTOR_NAMES) > 0 else 'None'}\n"
+      instructors_selected += f'{studio}: {INSTRUCTOR_NAMES if len(INSTRUCTOR_NAMES) > 0 else "None"}\n'
     return instructors_selected.rstrip()
 
   def get_query_str(self, include_studio: bool=False, include_instructors: bool=False, include_weeks: bool=False, include_days: bool=False, include_time: bool=False, include_class_name_filter: bool=False) -> str:
@@ -163,7 +168,7 @@ class QueryData:
       query_str_list.append(f'Day(s): {self.get_selected_days_str()}\n')
 
     if include_time:
-      query_str_list.append(f'Time: {self.get_selected_time_str()}\n')
+      query_str_list.append(f'Timeslot(s):\n{self.get_selected_time_str()}\n')
 
     if include_class_name_filter:
       query_str_list.append(f'Class Name Filter: {self.get_selected_class_name_filter_str()}\n')
@@ -230,10 +235,17 @@ class ResultData:
               if current_sg_time.hour > class_time.hour or current_sg_time.hour == class_time.hour and current_sg_time.minute > class_time.minute:
                 continue
 
-            query_time_from_later_than_class_time = query.start_time_from.hour > class_time.hour or query.start_time_from.hour == class_time.hour and query.start_time_from.minute > class_time.minute
-            query_time_to_earlier_than_class_time = query.start_time_to.hour < class_time.hour or query.start_time_to.hour == class_time.hour and query.start_time_to.minute < class_time.minute
-            if query_time_from_later_than_class_time or query_time_to_earlier_than_class_time:
-              continue
+            if len(query.start_times) > 0:
+              within_start_times = False
+              for start_time_from, start_time_to in query.start_times:
+                class_time_within_query_time_from = class_time.hour > start_time_from.hour or class_time.hour == start_time_from.hour and class_time.minute >= start_time_from.minute
+                class_time_within_query_time_to = class_time.hour < start_time_to.hour or class_time.hour == start_time_to.hour and class_time.minute <= start_time_to.minute
+                if class_time_within_query_time_from and class_time_within_query_time_to:
+                  within_start_times = True
+                  break
+
+              if not within_start_times:
+                continue
 
             classes.setdefault(date_to_check, []).append(class_details)
         date_to_check = date_to_check + timedelta(days=1)

@@ -1,4 +1,5 @@
 from common.data_types import SORTED_DAYS, STUDIO_LOCATIONS_MAP, StudioData, StudioLocation, StudioType, QueryData
+from datetime import datetime
 from telebot.types import InlineKeyboardButton
 
 class ButtonData:
@@ -98,7 +99,7 @@ class UserManager:
     self.user_button_data = {}
 
   def reset_query_data(self, user_id, chat_id):
-    self.user_query_data[(user_id, chat_id)] = QueryData(studios={}, current_studio=StudioType.Null, weeks=1, days=SORTED_DAYS, start_time_from='0000', start_time_to='2359', class_name_filter='')
+    self.user_query_data[(user_id, chat_id)] = QueryData(studios={}, current_studio=StudioType.Null, weeks=1, days=SORTED_DAYS, start_times=[], class_name_filter='')
 
   def reset_button_data(self, user_id, chat_id):
     self.user_button_data[(user_id, chat_id)] = ButtonData()
