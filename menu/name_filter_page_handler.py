@@ -11,7 +11,7 @@ def class_name_filter_selection_handler(user_id: int, message: telebot.types.Mes
   text += query_data.get_query_str(include_class_name_filter=True)
 
   keyboard = telebot.types.InlineKeyboardMarkup()
-  set_filter_button = telebot.types.InlineKeyboardButton('Set Filter', callback_data='{"step": "class-name-filter-set"}')
+  set_filter_button = telebot.types.InlineKeyboardButton('Add Filter', callback_data='{"step": "class-name-filter-add"}')
   reset_filter_button = telebot.types.InlineKeyboardButton('Reset Filter', callback_data='{"step": "class-name-filter-reset"}')
   next_button = telebot.types.InlineKeyboardButton('Next ▶️', callback_data='{"step": "main-page-handler"}')
 
@@ -20,7 +20,7 @@ def class_name_filter_selection_handler(user_id: int, message: telebot.types.Mes
   keyboard.add(next_button)
   sent_msg = global_variables.BOT.send_message(message.chat.id, text, reply_markup=keyboard, parse_mode='Markdown')
 
-@global_variables.BOT.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'class-name-filter-set')
+@global_variables.BOT.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'class-name-filter-add')
 def class_name_filter_set_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
   text = 'Enter name of class to filter (non-case sensitive)\ne.g. *essential*'
   sent_msg = global_variables.BOT.send_message(query.message.chat.id, text, parse_mode='Markdown')
