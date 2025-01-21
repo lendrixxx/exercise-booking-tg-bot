@@ -58,9 +58,15 @@ def parse_get_schedule_response(response: requests.models.Response, days: list[s
 
       class_time = datetime.strptime(data['startTime'], '%H:%M:%S')
 
+      if data['roomName'] in ROOM_NAME_TO_STUDIO_LOCATION_MAP:
+        location = ROOM_NAME_TO_STUDIO_LOCATION_MAP[data['roomName']]
+      else:
+        location = StudioLocation.Null
+        class_name += " @ " + data['roomName']
+
       class_details = ClassData(
         studio=StudioType.Rev,
-        location=ROOM_NAME_TO_STUDIO_LOCATION_MAP[data['roomName']],
+        location=location,
         name=class_name,
         instructor=instructor_str,
         time=datetime.strftime(class_time, '%I:%M %p'),
