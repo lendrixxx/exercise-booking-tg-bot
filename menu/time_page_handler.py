@@ -40,17 +40,17 @@ def start_time_input_handler(message: telebot.types.Message, user_id: int) -> No
     if len(split_message_without_whitespace) != 2:
       raise Exception('Input has invalid format')
 
-    start_time_from_str = split_message_without_whitespace[0]
-    start_time_to_str = split_message_without_whitespace[1]
+    start_time_str = split_message_without_whitespace[0]
+    end_time_str = split_message_without_whitespace[1]
 
-    if len(start_time_from_str) != 4:
-      raise Exception('Start time from has invalid length')
+    if len(start_time_str) != 4:
+      raise Exception('Start time has invalid length')
 
-    if len(start_time_to_str) != 4:
-      raise Exception('Start time to has invalid length')
+    if len(end_time_str) != 4:
+      raise Exception('End time has invalid length')
 
-    start_time_from = datetime.strptime(start_time_from_str, '%H%M')
-    start_time_to = datetime.strptime(start_time_to_str, '%H%M')
+    start_time = datetime.strptime(start_time_str, '%H%M')
+    end_time = datetime.strptime(end_time_str, '%H%M')
   except Exception as e:
     print(f'Invalid time "{message.text}" entered: {str(e)}')
     text = f'Invalid time "{message.text}" entered'
@@ -58,68 +58,67 @@ def start_time_input_handler(message: telebot.types.Message, user_id: int) -> No
     time_selection_handler(user_id, message)
     return
 
-  if start_time_to < start_time_from:
-    text = f'Start time to must be later than or equal start time from. Start time from: {query_data.start_time_from.strftime("%H%M")}'
+  if end_time < start_time:
+    text = f'End time must be later than or equal start time. Start time: {query_data.start_time.strftime("%H%M")}'
     sent_msg = global_variables.BOT.send_message(message.chat.id, text, parse_mode='Markdown')
     time_selection_handler(user_id, message)
     return
 
   query_data = global_variables.USER_MANAGER.get_query_data(user_id, message.chat.id)
 
-  # Start time from should be at least one minute before existing start time from or greater than or equal existing start time to
-  is_valid_start_time_from = True
-  for existing_start_time_from, existing_start_time_to in query_data.start_times:
-    at_least_one_minute_before_existing_start_time_from = start_time_from.hour < existing_start_time_from.hour or start_time_from.hour == existing_start_time_from.hour and start_time_from.minute < existing_start_time_from.minute
-    greater_than_or_equal_existing_start_time_to = start_time_from >= existing_start_time_to
-    if not at_least_one_minute_before_existing_start_time_from and not greater_than_or_equal_existing_start_time_to:
-      conflicting_start_time_from_str = existing_start_time_from.strftime("%H%M")
-      conflicting_start_time_to_str = existing_start_time_to.strftime("%H%M")
-      is_valid_start_time_from = False
+  # Start time should be at least one minute before existing start time or greater than or equal existing end time
+  is_valid_start_time = True
+  for existing_start_time, existing_end_time in query_data.start_times:
+    at_least_one_minute_before_existing_start_time = start_time.hour < existing_start_time.hour or start_time.hour == existing_start_time.hour and start_time.minute < existing_start_time.minute
+    greater_than_or_equal_existing_end_time = start_time >= existing_end_time
+    if not at_least_one_minute_before_existing_start_time and not greater_than_or_equal_existing_end_time:
+      conflicting_start_time_str = existing_start_time.strftime('%H%M')
+      conflicting_end_time_str = existing_end_time.strftime('%H%M')
+      is_valid_start_time = False
       break
 
-    # Edge case where existing timeslot start time from and to are the same
-    if existing_start_time_from.hour == existing_start_time_to.hour and existing_start_time_from.minute == existing_start_time_to.minute:
-      if start_time_from.hour == existing_start_time_from.hour and start_time_from.minute == existing_start_time_from.minute:
-        conflicting_start_time_from_str = existing_start_time_from.strftime("%H%M")
-        conflicting_start_time_to_str = existing_start_time_to.strftime("%H%M")
-        is_valid_start_time_from = False
+    # Edge case where existing timeslot start time and end time are the same
+    if existing_start_time.hour == existing_end_time.hour and existing_start_time.minute == existing_end_time.minute:
+      if start_time.hour == existing_start_time.hour and start_time.minute == existing_start_time.minute:
+        conflicting_start_time_str = existing_start_time.strftime('%H%M')
+        conflicting_end_time_str = existing_end_time.strftime('%H%M')
+        is_valid_start_time = False
         break
 
-  if not is_valid_start_time_from:
-    text = f'Start time "{start_time_from_str}" conflicts with existing timeslot "{conflicting_start_time_from_str} - {conflicting_start_time_to_str}"'
+  if not is_valid_start_time:
+    text = f'Start time "{start_time_str}" conflicts with existing timeslot "{conflicting_start_time_str} - {conflicting_end_time_str}"'
     sent_msg = global_variables.BOT.send_message(message.chat.id, text, parse_mode='Markdown')
     time_selection_handler(user_id, message)
     return
 
-  # Start time to should be less than or equal to existing start time from or greater than existing start time to
-  is_valid_start_time_to = True
-  for existing_start_time_from, existing_start_time_to in query_data.start_times:
-    less_than_or_equal_existing_start_time_from = start_time_to <= existing_start_time_from
-    greater_than_existing_start_time_to = start_time_to > existing_start_time_to
-    if not less_than_or_equal_existing_start_time_from and not greater_than_existing_start_time_to:
-      conflicting_start_time_from_str = existing_start_time_from.strftime("%H%M")
-      conflicting_start_time_to_str = existing_start_time_to.strftime("%H%M")
-      is_valid_start_time_to = False
+  # End time should be less than or equal to existing start time or greater than existing end time
+  is_valid_end_time = True
+  for existing_start_time, existing_end_time in query_data.start_times:
+    less_than_or_equal_existing_start_time = end_time <= existing_start_time
+    greater_than_existing_end_time = end_time > existing_end_time
+    if not less_than_or_equal_existing_start_time and not greater_than_existing_end_time:
+      conflicting_start_time_str = existing_start_time.strftime('%H%M')
+      conflicting_end_time_str = existing_end_time.strftime('%H%M')
+      is_valid_end_time = False
       break
 
-    # If start time to is greated than existing start time to, start time from must also be greater than existing start time to
-    if greater_than_existing_start_time_to:
-      if start_time_from < existing_start_time_to:
-        conflicting_start_time_from_str = existing_start_time_from.strftime("%H%M")
-        conflicting_start_time_to_str = existing_start_time_to.strftime("%H%M")
-        text = f'Time range "{start_time_from_str} - {start_time_to_str}" conflicts with existing timeslot "{conflicting_start_time_from_str} - {conflicting_start_time_to_str}"'
+    # If end time is greater than existing end time, start time must also be greater than existing end time
+    if greater_than_existing_end_time:
+      if start_time < existing_end_time:
+        conflicting_start_time_str = existing_start_time.strftime('%H%M')
+        conflicting_end_time_str = existing_end_time.strftime('%H%M')
+        text = f'Time range "{start_time_str} - {end_time_str}" conflicts with existing timeslot "{conflicting_start_time_str} - {conflicting_end_time_str}"'
         sent_msg = global_variables.BOT.send_message(message.chat.id, text, parse_mode='Markdown')
         time_selection_handler(user_id, message)
         return
 
-
-  if not is_valid_start_time_to:
-    text = f'End time "{start_time_to_str}" conflicts with existing timeslot "{conflicting_start_time_from_str} - {conflicting_start_time_to_str}"'
+  if not is_valid_end_time:
+    text = f'End time "{end_time_str}" conflicts with existing timeslot "{conflicting_start_time_str} - {conflicting_end_time_str}"'
     sent_msg = global_variables.BOT.send_message(message.chat.id, text, parse_mode='Markdown')
     time_selection_handler(user_id, message)
     return
 
-  query_data.start_times.append((start_time_from, start_time_to))
+  query_data.start_times.append((start_time, end_time))
   query_data.start_times = sorted(query_data.start_times)
   time_selection_handler(user_id, message)
 
@@ -137,10 +136,10 @@ def time_selection_remove_handler(message: telebot.types.Message, user_id: int) 
     text = '*Select timeslot to remove*'
     keyboard = telebot.types.InlineKeyboardMarkup()
     buttons = []
-    for start_time_from, start_time_to in query_data.start_times:
-      start_time_from_str = start_time_from.strftime("%H%M")
-      start_time_to_str = start_time_to.strftime("%H%M")
-      remove_timeslot_button = telebot.types.InlineKeyboardButton(f'{start_time_from_str} - {start_time_to_str}', callback_data=f'{{"step": "remove-timeslot", "from":"{start_time_from_str}", "to":"{start_time_to_str}"}}')
+    for start_time, end_time in query_data.start_times:
+      start_time_str = start_time.strftime('%H%M')
+      end_time_str = end_time.strftime('%H%M')
+      remove_timeslot_button = telebot.types.InlineKeyboardButton(f'{start_time_str} - {end_time_str}', callback_data=f'{{"step": "remove-timeslot", "start":"{start_time_str}", "end":"{end_time_str}"}}')
       buttons.append(remove_timeslot_button)
       keyboard.add(buttons[-1])
 
@@ -150,10 +149,10 @@ def time_selection_remove_handler(message: telebot.types.Message, user_id: int) 
 
 @global_variables.BOT.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'remove-timeslot')
 def time_selection_remove_timeslot_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
-  start_time_from = eval(query.data)['from']
-  start_time_to = eval(query.data)['to']
+  start_time = eval(query.data)['start']
+  end_time = eval(query.data)['end']
   query_data = global_variables.USER_MANAGER.get_query_data(query.from_user.id, query.message.chat.id)
-  query_data.start_times.remove((datetime.strptime(start_time_from, '%H%M'), datetime.strptime(start_time_to, '%H%M')))
+  query_data.start_times.remove((datetime.strptime(start_time, '%H%M'), datetime.strptime(end_time, '%H%M')))
   time_selection_handler(query.from_user.id, query.message)
 
 @global_variables.BOT.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'time-selection-reset')
