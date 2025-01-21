@@ -720,7 +720,7 @@ def nerd_input_handler(message: telebot.types.Message) -> None:
     return
 
   # Loop through studios
-  query = QueryData(studios={}, current_studio=StudioType.Null, weeks=0, days=[], start_time_from='0000', start_time_to='2359', class_name_filter='')
+  query = QueryData(studios={}, current_studio=StudioType.Null, weeks=0, days=[], start_times=[], class_name_filter='')
   current_studio = StudioType.Null
   current_studio_locations = []
   for index, input_str in enumerate(input_str_list[:-5]):
