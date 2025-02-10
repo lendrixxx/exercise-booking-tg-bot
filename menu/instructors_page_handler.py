@@ -1,5 +1,6 @@
 import global_variables
 import telebot
+from menu.main_page_handler import main_page_handler
 
 @global_variables.BOT.message_handler(commands=['instructors'])
 def instructors_list_handler(message: telebot.types.Message) -> None:
