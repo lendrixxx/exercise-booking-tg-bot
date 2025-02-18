@@ -1,9 +1,11 @@
 import global_variables
 import telebot
+import time
 from menu.main_page_handler import main_page_handler
 
 @global_variables.BOT.message_handler(commands=['instructors'])
 def instructors_list_handler(message: telebot.types.Message) -> None:
+  global_variables.HISTORY_HANDLER.add(int(time.time()), message.from_user.id, message.chat.id, message.from_user.username, message.from_user.first_name, message.from_user.last_name, 'instructors')
   text = '*Rev Instructors:* ' + ', '.join(global_variables.REV_INSTRUCTOR_NAMES) + '\n\n'
   text += '*Barrys Instructors:* ' + ', '.join(global_variables.BARRYS_INSTRUCTOR_NAMES) + '\n\n'
   text += '*Absolute Instructors:* ' + ', '.join(global_variables.ABSOLUTE_INSTRUCTOR_NAMES) + '\n\n'

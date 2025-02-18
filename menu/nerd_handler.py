@@ -1,11 +1,13 @@
 import global_variables
 import telebot
+import time
 from common.data_types import QueryData, StudioData, StudioLocation, StudioType, SORTED_DAYS
 from datetime import datetime
 from menu.main_page_handler import main_page_handler
 
 @global_variables.BOT.message_handler(commands=['nerd'])
 def nerd_handler(message: telebot.types.Message) -> None:
+  global_variables.HISTORY_HANDLER.add(int(time.time()), message.from_user.id, message.chat.id, message.from_user.username, message.from_user.first_name, message.from_user.last_name, 'nerd')
   text = "Welcome to nerd mode 🤓\n" \
          "\n" \
          "*Enter your query in the following format:*\n" \

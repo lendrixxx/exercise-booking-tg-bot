@@ -2,6 +2,7 @@ import logging
 import os
 import telebot
 from common.data_types import ResultData
+from history_handler import HistoryHandler
 from user_manager import UserManager
 
 # Global variables
@@ -28,3 +29,5 @@ BARRYS_INSTRUCTORID_MAP = {}
 BARRYS_INSTRUCTOR_NAMES = []
 REV_INSTRUCTORID_MAP = {}
 REV_INSTRUCTOR_NAMES = []
+
+HISTORY_HANDLER = HistoryHandler()
