@@ -44,7 +44,7 @@ def nerd_input_handler(message: telebot.types.Message) -> None:
   input_str_list = message.text.splitlines()
 
   # Weeks, days, timeslots, and class name filter = 4 items. Remaining items should be divisible by 3 (studio name, locations, instructors)
-  if (len(input_str_list) - 4) % 3 != 0:
+  if len(input_str_list) < 7 or (len(input_str_list) - 4) % 3 != 0:
     global_variables.BOT.send_message(message.chat.id, 'Failed to handle query. Unexpected format received.', parse_mode='Markdown')
     return
 

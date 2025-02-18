@@ -1,5 +1,4 @@
 from common.data_types import SORTED_DAYS, STUDIO_LOCATIONS_MAP, StudioData, StudioLocation, StudioType, QueryData
-from datetime import datetime
 from telebot.types import InlineKeyboardButton
 
 class ButtonData:
