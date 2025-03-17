@@ -101,8 +101,6 @@ def nerd_input_handler(message: telebot.types.Message) -> None:
 
       if len(invalid_instructors) > 0:
         selected_instructors = [instructor for instructor in selected_instructors if instructor not in invalid_instructors]
-        print('[test]')
-        print(instructor_list)
         text = f'Failed to find instructor(s): {", ".join(invalid_instructors)}'
         sent_msg = global_variables.BOT.send_message(message.chat.id, text, parse_mode='Markdown')
 
@@ -152,7 +150,7 @@ def nerd_input_handler(message: telebot.types.Message) -> None:
     try:
       start_time = datetime.strptime(start_time_str, '%H%M')
     except Exception as e:
-      print(f'Invalid time \'{start_time_str}\' entered: {str(e)}')
+      global_variables.LOGGER.warning(f'Invalid time \'{start_time_str}\' entered: {str(e)}')
       text = f'Invalid time \'{start_time_str}\' entered. Please enter time in 24 hour format'
       global_variables.BOT.send_message(message.chat.id, text, parse_mode='Markdown')
       return
@@ -160,7 +158,7 @@ def nerd_input_handler(message: telebot.types.Message) -> None:
     try:
       end_time = datetime.strptime(end_time_str, '%H%M')
     except Exception as e:
-      print(f'Invalid time \'{end_time_str}\' entered: {str(e)}')
+      global_variables.LOGGER.warning(f'Invalid time \'{end_time_str}\' entered: {str(e)}')
       text = f'Invalid time \'{end_time_str}\' entered. Please enter time in 24 hour format'
       global_variables.BOT.send_message(message.chat.id, text, parse_mode='Markdown')
       return

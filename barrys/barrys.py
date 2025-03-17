@@ -1,4 +1,5 @@
 import calendar
+import global_variables
 import logging
 import requests
 from bs4 import BeautifulSoup
@@ -6,8 +7,6 @@ from common.data_types import CapacityInfo, ClassAvailability, ClassData, RESPON
 from copy import copy
 from datetime import datetime, timedelta
 from barrys.data import LOCATION_MAP, RESPONSE_LOCATION_TO_STUDIO_LOCATION_MAP
-
-LOGGER = logging.getLogger(__name__)
 
 def send_get_schedule_request(locations: list[StudioLocation], week: int, instructor: str, instructorid_map: dict[str, int]) -> requests.models.Response:
   url = 'https://apac.barrysbootcamp.com.au/reserve/index.cfm?action=Reserve.chooseClass'
@@ -115,14 +114,14 @@ def get_instructorid_map() -> dict[str, int]:
     reserve_filters_list = [list_item for list_item in soup.find_all('ul') if list_item.get('id') == 'reserveFilter']
     reserve_filters_list_len = len(reserve_filters_list)
     if reserve_filters_list_len != 1:
-      LOGGER.warning(f'Failed to get list of instructors - Expected 1 reserve filter list, got {reserve_filters_list_len} instead')
+      global_variables.LOGGER.warning(f'Failed to get list of instructors - Expected 1 reserve filter list, got {reserve_filters_list_len} instead')
       return {}
 
     reserve_filters = reserve_filters_list[0]
     instructor_filter_list = [list_item for list_item in reserve_filters.find_all('li') if list_item.get('id') == 'reserveFilter1']
     instructor_filter_list_len = len(instructor_filter_list)
     if instructor_filter_list_len != 1:
-      LOGGER.warning(f'Failed to get list of instructors - Expected 1 instructor filter list, got {instructor_filter_list_len} instead')
+      global_variables.LOGGER.warning(f'Failed to get list of instructors - Expected 1 instructor filter list, got {instructor_filter_list_len} instead')
       return {}
 
     instructorid_map = {}

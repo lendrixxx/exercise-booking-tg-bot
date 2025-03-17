@@ -1,4 +1,5 @@
 import calendar
+import global_variables
 import logging
 import requests
 from bs4 import BeautifulSoup
@@ -6,8 +7,6 @@ from common.data_types import CapacityInfo, ClassAvailability, ClassData, RESPON
 from copy import copy
 from datetime import datetime, timedelta
 from absolute.data import LOCATION_MAP, LOCATION_STR_MAP
-
-LOGGER = logging.getLogger(__name__)
 
 def send_get_schedule_request(locations: list[StudioLocation], week: int, instructor: str, instructorid_map: dict[str, int]) -> requests.models.Response:
   url = 'https://absoluteboutiquefitness.zingfit.com/reserve/index.cfm?action=Reserve.chooseClass'
@@ -36,7 +35,7 @@ def parse_get_schedule_response(response: requests.models.Response, locations: l
   reserve_table_list = [table for table in soup.find_all('table') if table.get('id') == 'reserve']
   reserve_table_list_len = len(reserve_table_list)
   if reserve_table_list_len != 1:
-    LOGGER.warning(f'Failed to get schedule - Expected 1 reserve table, got {reserve_table_list_len} instead')
+    global_variables.LOGGER.warning(f'Failed to get schedule - Expected 1 reserve table, got {reserve_table_list_len} instead')
     return {}
 
   reserve_table = reserve_table_list[0]
@@ -46,12 +45,12 @@ def parse_get_schedule_response(response: requests.models.Response, locations: l
   reserve_table_rows = reserve_table.tbody.find_all('tr')
   reserve_table_rows_len = len(reserve_table_rows)
   if reserve_table_rows_len != 1:
-    LOGGER.warning(f'Failed to get schedule - Expected 1 schedule row, got {reserve_table_rows_len} rows instead')
+    global_variables.LOGGER.warning(f'Failed to get schedule - Expected 1 schedule row, got {reserve_table_rows_len} rows instead')
     return {}
 
   reserve_table_datas = reserve_table_rows[0].find_all('td')
   if len(reserve_table_datas) == 0:
-    LOGGER.warning('Failed to get schedule - Table data is null')
+    global_variables.LOGGER.warning('Failed to get schedule - Table data is null')
     return {}
 
   # Get yesterday's date and update date at the start of each loop
@@ -86,7 +85,7 @@ def parse_get_schedule_response(response: requests.models.Response, locations: l
       for reserve_table_data_div_span in reserve_table_data_div.find_all('span'):
         reserve_table_data_div_span_class_list = reserve_table_data_div_span.get('class')
         if len(reserve_table_data_div_span_class_list) == 0:
-          LOGGER.warning('Failed to get schedule - Table data span class is null')
+          global_variables.LOGGER.warning('Failed to get schedule - Table data span class is null')
           continue
 
         reserve_table_data_div_span_class = reserve_table_data_div_span_class_list[0]
@@ -145,14 +144,14 @@ def get_instructorid_map() -> dict[str, int]:
     reserve_filters_list = [list_item for list_item in soup.find_all('ul') if list_item.get('id') == 'reserveFilter']
     reserve_filters_list_len = len(reserve_filters_list)
     if reserve_filters_list_len != 1:
-      LOGGER.warning(f'Failed to get list of instructors - Expected 1 reserve filter list, got {reserve_filters_list_len} instead')
+      global_variables.LOGGER.warning(f'Failed to get list of instructors - Expected 1 reserve filter list, got {reserve_filters_list_len} instead')
       return {}
 
     reserve_filters = reserve_filters_list[0]
     instructor_filter_list = [list_item for list_item in reserve_filters.find_all('li') if list_item.get('id') == 'reserveFilter1']
     instructor_filter_list_len = len(instructor_filter_list)
     if instructor_filter_list_len != 1:
-      LOGGER.warning(f'Failed to get list of instructors - Expected 1 instructor filter list, got {instructor_filter_list_len} instead')
+      global_variables.LOGGER.warning(f'Failed to get list of instructors - Expected 1 instructor filter list, got {instructor_filter_list_len} instead')
       return {}
 
     instructorid_map = {}

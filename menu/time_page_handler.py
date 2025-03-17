@@ -52,7 +52,7 @@ def start_time_input_handler(message: telebot.types.Message, user_id: int) -> No
     start_time = datetime.strptime(start_time_str, '%H%M')
     end_time = datetime.strptime(end_time_str, '%H%M')
   except Exception as e:
-    print(f'Invalid time "{message.text}" entered: {str(e)}')
+    global_variables.LOGGER.warning(f'Invalid time "{message.text}" entered: {str(e)}')
     text = f'Invalid time "{message.text}" entered'
     sent_msg = global_variables.BOT.send_message(message.chat.id, text, parse_mode='Markdown')
     time_selection_handler(user_id, message)
