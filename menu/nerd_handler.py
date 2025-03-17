@@ -23,7 +23,7 @@ def nerd_handler(message: telebot.types.Message) -> None:
          "*Instructors*: Use /instructors for list of instructors\n" \
          "\n" \
          "*e.g.*\n" \
-         "rev\n" \
+         "`rev\n" \
          "bugis, orchard\n" \
          "chloe, zai\n" \
          "absolute (spin)\n" \
@@ -32,7 +32,7 @@ def nerd_handler(message: telebot.types.Message) -> None:
          "2\n" \
          "monday, wednesday, saturday\n" \
          "0700-0900, 1300-1500, 1800-2000\n" \
-         "nil\n"
+         "nil\n`"
 
   sent_msg = global_variables.BOT.send_message(message.chat.id, text, parse_mode='Markdown')
   global_variables.BOT.register_next_step_handler(sent_msg, nerd_input_handler)
