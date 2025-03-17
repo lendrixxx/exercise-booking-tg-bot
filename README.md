@@ -17,9 +17,9 @@ To be able to run the bot, you will need to get a **bot token**. FreeCodeCamp ha
 
 ## Usage (Normal Mode)
 
-The main entry point for the bot can be found in the **bot.py** script.
+The main entry point for the bot can be found in the **main.py** script.
 
-1. Run `python bot.py` to start the bot.
+1. Run `python main.py` to start the bot.
 2. Find your bot in Telegram with the username you specified when creating the bot.
 3. Open the menu and select **/start** to open up the main page to check the schedule.\
 ![image](https://github.com/user-attachments/assets/78583297-6a54-4a08-a57f-b406d9d0a88c)
@@ -52,16 +52,15 @@ Select **Reset Filter** to clear any previously entered filters.\
 Select **Next ▶️** to go back to the main page.\
 ![image](https://github.com/user-attachments/assets/0a8f40d4-a4bb-49a1-ae9d-438a2fb438e8)
 
-11. Select **Get Schedule ▶️** to get the schedule based on the selected options.
+10. Select **Get Schedule ▶️** to get the schedule based on the selected options.
 There you go! Classes are sorted according to date and time.\
 Classes prefixed with **[W]** are classes that are currently on a waitlist.\
 Classes prefixed with **[F]** are classes that are currently full.\
 ![image](https://github.com/user-attachments/assets/e46ea171-b0d1-4f0a-8a78-b8a13d31625b)
 
-
 ## Usage (Nerd Mode)
 
-1. Run `python bot.py` to start the bot.
+1. Run `python main.py` to start the bot.
 2. Find your bot in Telegram with the username you specified when creating the bot.
 3. Open the menu and select **/nerd**\
 ![image](https://github.com/user-attachments/assets/10b48e08-17a0-4965-9a34-c9b262613299)
