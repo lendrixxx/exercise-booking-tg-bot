@@ -10,6 +10,7 @@ class StudioType(str, Enum):
   AbsolutePilates = 'Absolute (Pilates)'
   AllySpin = 'Ally (Spin)'
   AllyPilates = 'Ally (Pilates)'
+  AllyRecovery = 'Ally (Recovery)'
   Barrys = 'Barrys'
   Rev = 'Rev'
   Null = 'Null'
@@ -32,6 +33,7 @@ class ClassAvailability(str, Enum):
   Available = 'Available'
   Waitlist = 'Waitlist'
   Full = 'Full'
+  Cancelled = 'Cancelled'
   Null = 'Null'
 
 STUDIO_LOCATIONS_MAP = {
@@ -41,6 +43,7 @@ STUDIO_LOCATIONS_MAP = {
   StudioType.AbsolutePilates: [StudioLocation.Centrepoint, StudioLocation.GreatWorld, StudioLocation.i12, StudioLocation.Raffles, StudioLocation.StarVista],
   StudioType.AllySpin: [StudioLocation.CrossStreet],
   StudioType.AllyPilates: [StudioLocation.CrossStreet],
+  StudioType.AllyRecovery: [StudioLocation.CrossStreet],
 }
 
 RESPONSE_AVAILABILITY_MAP = {
@@ -50,7 +53,9 @@ RESPONSE_AVAILABILITY_MAP = {
   'open' : ClassAvailability.Available,
   'waitlist' : ClassAvailability.Waitlist,
   'full' : ClassAvailability.Waitlist, # TODO: Confirm session status string
-  'closed' : ClassAvailability.Available
+  'closed' : ClassAvailability.Available,
+  'scheduleCancelled' : ClassAvailability.Cancelled,
+  'cancelled' : ClassAvailability.Cancelled
 }
 
 SORTED_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -226,7 +231,8 @@ class ResultData:
 
             is_by_instructor = 'All' in query.studios[class_details.studio].instructors \
               or any(instructor.lower() == class_details.instructor.lower() for instructor in query.studios[class_details.studio].instructors) \
-              or any(instructor.lower() in class_details.instructor.lower().split(' ') for instructor in query.studios[class_details.studio].instructors)
+              or any(instructor.lower() in class_details.instructor.lower().split(' ') for instructor in query.studios[class_details.studio].instructors) \
+              or class_details.studio == StudioType.AllyRecovery
             if not is_by_instructor:
               continue
 
@@ -268,6 +274,8 @@ class ResultData:
           availability_str = '[W] '
         elif class_details.availability == ClassAvailability.Full:
           availability_str = '[F] '
+        elif class_details.availability == ClassAvailability.Cancelled:
+          availability_str = '[Cancelled] '
 
         if class_details.location == StudioLocation.Null:
           result_str += f'*{availability_str + class_details.time}* - {class_details.name} ({class_details.instructor})'

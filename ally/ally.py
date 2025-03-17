@@ -85,7 +85,16 @@ def parse_get_schedule_response(response, week: int, days: list[str]) -> dict[da
             continue
 
           class_details.set_time(str(reserve_table_data_div_span.contents[0].strip()))
-          class_details.studio = StudioType.AllySpin if 'RIDE' in class_details.name else StudioType.AllyPilates
+          if 'RIDE' in class_details.name or 'SIGNATURE' in class_details.name:
+            class_details.studio = StudioType.AllySpin
+          elif 'REFORMER' in class_details.name or 'CHAIR' in class_details.name:
+            class_details.studio = StudioType.AllyPilates
+          elif 'RECOVERY SUITE' in class_details.name:
+            class_details.studio = StudioType.AllyRecovery
+          else:
+            LOGGER.warning(f'Failed to get class - Unknown class type {class_details.name}')
+            continue
+
           result_dict[current_date].append(copy(class_details))
 
     if len(result_dict[current_date]) == 0:

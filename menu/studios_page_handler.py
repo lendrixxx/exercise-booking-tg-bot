@@ -9,7 +9,7 @@ def get_studios_keyboard(user_id: int, chat_id: int) -> telebot.types.InlineKeyb
   studios_keyboard = telebot.types.InlineKeyboardMarkup()
   studios_keyboard.add(button_data.studios_buttons_map['Rev'], button_data.studios_buttons_map['Barrys'])
   studios_keyboard.add(button_data.studios_buttons_map['Absolute (Spin)'], button_data.studios_buttons_map['Absolute (Pilates)'])
-  studios_keyboard.add(button_data.studios_buttons_map['Ally (Spin)'], button_data.studios_buttons_map['Ally (Pilates)'])
+  studios_keyboard.add(button_data.studios_buttons_map['Ally (Spin)'], button_data.studios_buttons_map['Ally (Pilates)'], button_data.studios_buttons_map['Ally (Recovery)'])
   studios_keyboard.add(button_data.studios_select_all_button, button_data.studios_unselect_all_button)
   studios_keyboard.add(button_data.studios_next_button)
   return studios_keyboard
@@ -66,7 +66,7 @@ def studios_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
     global_variables.USER_MANAGER.update_button_data_studios_buttons_map(query.from_user.id, query.message.chat.id, button_data.studios_buttons_map)
     global_variables.USER_MANAGER.update_query_data_select_all_studios(query.from_user.id, query.message.chat.id)
     global_variables.USER_MANAGER.update_button_data_select_all_studios_locations_buttons_map(query.from_user.id, query.message.chat.id)
-  elif selected_studio == StudioType.AllySpin or selected_studio == StudioType.AllyPilates:
+  elif selected_studio == StudioType.AllySpin or selected_studio == StudioType.AllyPilates or selected_studio == StudioType.AllyRecovery:
     global_variables.USER_MANAGER.update_query_data_current_studio(query.from_user.id, query.message.chat.id, selected_studio)
     select_location_handler(query.from_user.id, query.message, StudioLocation.CrossStreet)
   else:

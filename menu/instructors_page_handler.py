@@ -27,6 +27,8 @@ def show_instructors_callback_query_handler(query: telebot.types.CallbackQuery) 
     text += '*Absolute Instructors:* ' + ', '.join(global_variables.ABSOLUTE_INSTRUCTOR_NAMES) + '\n\n'
   if 'Ally (Spin)' in query_data.studios or 'Ally (Pilates)' in query_data.studios:
     text += '*Ally Instructors:* ' + ', '.join(global_variables.ALLY_INSTRUCTOR_NAMES) + '\n\n'
+  if 'Ally (Recovery)' in query_data.studios:
+    text += 'No instructors for Ally (Recovery)' + '\n\n'
 
   sent_msg = global_variables.BOT.send_message(query.message.chat.id, text, parse_mode='Markdown')
   instructors_selection_handler(query.from_user.id, query.message)
