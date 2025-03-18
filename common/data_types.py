@@ -280,7 +280,7 @@ class ResultData:
         if class_details.location == StudioLocation.Null:
           result_str += f'*{availability_str + class_details.time}* - {class_details.name} ({class_details.instructor})'
         else:
-          result_str += f'*{availability_str + class_details.time}* - {class_details.name} @ {class_details.location} ({class_details.instructor})'
+          result_str += f'*{availability_str + class_details.time}* - {class_details.name} @ {class_details.location.value} ({class_details.instructor})'
 
         if class_details.capacity_info.has_info:
           if class_details.availability == ClassAvailability.Waitlist:
