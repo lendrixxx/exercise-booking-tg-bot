@@ -83,9 +83,13 @@ def instructors_input_handler(message: telebot.types.Message, user_id: int, inst
     global_variables.USER_MANAGER.update_query_data_studios(user_id, message.chat.id, query_data.studios)
   else:
     invalid_instructors = []
+    if '/' in updated_instructors_list: # Some names contain '/' which should not be considered as a valid name
+      invalid_instructors.append('/')
+
     for instructor in updated_instructors_list:
       instructor_in_map = (any(instructor in instructor_in_map.split(' ') for instructor_in_map in instructorid_map)
-        or any(instructor == instructor_in_map for instructor_in_map in instructorid_map))
+        or any(instructor == instructor_in_map for instructor_in_map in instructorid_map)
+        or any(instructor == instructor_in_map.split('.')[0] for instructor_in_map in instructorid_map))
       if not instructor_in_map:
         invalid_instructors.append(instructor)
 

@@ -95,7 +95,8 @@ def nerd_input_handler(message: telebot.types.Message) -> None:
       else:
         for instructor in selected_instructors:
           found_instructor = (any(instructor in instructor_in_list.split(' ') for instructor_in_list in instructor_list)
-            or any(instructor == instructor_in_list for instructor_in_list in instructor_list))
+            or any(instructor == instructor_in_list for instructor_in_list in instructor_list)
+            or any(instructor == instructor_in_list.split('.')[0] for instructor_in_list in instructor_list))
           if not found_instructor:
             invalid_instructors.append(instructor)
 

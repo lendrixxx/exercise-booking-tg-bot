@@ -229,10 +229,11 @@ class ResultData:
             if StudioLocation.All not in query_locations and class_details.location not in query_locations:
               continue
 
-            is_by_instructor = 'All' in query.studios[class_details.studio].instructors \
-              or any(instructor.lower() == class_details.instructor.lower() for instructor in query.studios[class_details.studio].instructors) \
-              or any(instructor.lower() in class_details.instructor.lower().split(' ') for instructor in query.studios[class_details.studio].instructors) \
+            is_by_instructor = ('All' in query.studios[class_details.studio].instructors
               or class_details.studio == StudioType.AllyRecovery
+              or any(instructor.lower() == class_details.instructor.lower() for instructor in query.studios[class_details.studio].instructors)
+              or any(instructor.lower() in class_details.instructor.lower().split(' ') for instructor in query.studios[class_details.studio].instructors)
+              or any(instructor.lower() == class_details.instructor.lower().split('.')[0] for instructor in query.studios[class_details.studio].instructors))
             if not is_by_instructor:
               continue
 
