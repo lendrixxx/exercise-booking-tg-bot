@@ -6,8 +6,11 @@ My wife and I found ourselves with a handful of exercise packages across various
 
 ## Studios Supported
 
+_Note: Screenshots are not updated to show support for all studios. Usage for different studios are the same._
+
 - Absolute
 - Ally
+- Anarchy
 - Barry's
 - Revolution
 
@@ -27,7 +30,7 @@ The main entry point for the bot can be found in the **main.py** script.
 
 4. Select **Studios** to choose the studio(s) to get schedules of.\
 Select more studios by selecting **◀️ Select More** or select **Next ▶️** to go back to the main page.\
-_Note: Selecting a studio will bring you to the next page to choose the location(s) of the specific studio to check. Except for Ally which only has one location currently._\
+_Note: Selecting a studio will bring you to the next page to choose the location(s) of the specific studio to check. Except for Ally and Anarchy which only have one location currently._\
 ![image](https://github.com/user-attachments/assets/390ca2a9-ce44-4f8e-8ca2-14deca861a5c)
 
 5. Select **Instructors** to choose the instructor(s) for each selected studio you want to find classes for.\
@@ -67,4 +70,3 @@ Classes prefixed with **[F]** are classes that are currently full.\
 
 4. Follow the instructions from the prompt.\
 ![image](https://github.com/user-attachments/assets/fbe7ddaf-23ea-419d-8cd7-13391e3623f7)
-
