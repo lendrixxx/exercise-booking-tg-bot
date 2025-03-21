@@ -11,6 +11,7 @@ class StudioType(str, Enum):
   AllySpin = 'Ally (Spin)'
   AllyPilates = 'Ally (Pilates)'
   AllyRecovery = 'Ally (Recovery)'
+  Anarchy = 'Anarchy'
   Barrys = 'Barrys'
   Rev = 'Rev'
   Null = 'Null'
@@ -27,6 +28,7 @@ class StudioLocation(str, Enum):
   StarVista = 'Star Vista'
   GreatWorld = 'Great World'
   CrossStreet = 'Cross Street'
+  Robinson = 'Robinson'
   Null = 'Null'
 
 class ClassAvailability(str, Enum):
@@ -44,6 +46,7 @@ STUDIO_LOCATIONS_MAP = {
   StudioType.AllySpin: [StudioLocation.CrossStreet],
   StudioType.AllyPilates: [StudioLocation.CrossStreet],
   StudioType.AllyRecovery: [StudioLocation.CrossStreet],
+  StudioType.Anarchy: [StudioLocation.Robinson],
 }
 
 RESPONSE_AVAILABILITY_MAP = {

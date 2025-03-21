@@ -8,7 +8,7 @@ def weeks_selection_callback_query_handler(query: telebot.types.CallbackQuery) -
   query_data = global_variables.USER_MANAGER.get_query_data(query.from_user.id, query.message.chat.id)
   text = '*Currently selected week(s)*\n'
   text += query_data.get_query_str(include_weeks=True)
-  text += '\nAbsolute shows up to 1.5 weeks\nAlly shows up to 2 weeks\nBarrys shows up to 3 weeks\nRev shows up to 4 weeks\n'
+  text += '\nAbsolute shows up to 1.5 weeks\nAlly shows up to 2 weeks\nAnarchy shows up to 2.5 weeks\nBarrys shows up to 3 weeks\nRev shows up to 4 weeks\n'
 
   one_button = telebot.types.InlineKeyboardButton('1', callback_data='{"weeks": 1, "step": "weeks"}')
   two_button = telebot.types.InlineKeyboardButton('2', callback_data='{"weeks": 2, "step": "weeks"}')

@@ -16,6 +16,8 @@ from absolute.absolute import get_absolute_schedule
 from absolute.absolute import get_instructorid_map as get_absolute_instructorid_map
 from ally.ally import get_ally_schedule
 from ally.ally import get_instructorid_map as get_ally_instructorid_map
+from anarchy.anarchy import get_anarchy_schedule
+from anarchy.anarchy import get_instructorid_map as get_anarchy_instructorid_map
 from barrys.barrys import get_barrys_schedule
 from barrys.barrys import get_instructorid_map as get_barrys_instructorid_map
 from common.data_types import ResultData, StudioLocation
@@ -44,6 +46,13 @@ def update_cached_result_data() -> None:
     with mutex:
       updated_cached_result_data += ally_schedule
 
+  def _get_anarchy_schedule(mutex, updated_cached_result_data):
+    global_variables.ANARCHY_INSTRUCTORID_MAP = get_anarchy_instructorid_map()
+    global_variables.ANARCHY_INSTRUCTOR_NAMES = [instructor.lower() for instructor in list(global_variables.ANARCHY_INSTRUCTORID_MAP)]
+    anarchy_schedule = get_anarchy_schedule(weeks=3, days=['All'], instructors=['All'], instructorid_map=global_variables.ANARCHY_INSTRUCTORID_MAP)
+    with mutex:
+      updated_cached_result_data += anarchy_schedule
+
   def _get_barrys_schedule(mutex, updated_cached_result_data):
     global_variables.BARRYS_INSTRUCTORID_MAP = get_barrys_instructorid_map()
     global_variables.BARRYS_INSTRUCTOR_NAMES = [instructor.lower() for instructor in list(global_variables.BARRYS_INSTRUCTORID_MAP)]
@@ -63,15 +72,18 @@ def update_cached_result_data() -> None:
   mutex = threading.Lock()
   absolute_thread = threading.Thread(target=_get_absolute_schedule, name='absolute_thread', args=(mutex, updated_cached_result_data,))
   ally_thread = threading.Thread(target=_get_ally_schedule, name='ally_thread', args=(mutex, updated_cached_result_data,))
+  anarchy_thread = threading.Thread(target=_get_anarchy_schedule, name='anarchy_thread', args=(mutex, updated_cached_result_data,))
   barrys_thread = threading.Thread(target=_get_barrys_schedule, name='barrys_thread', args=(mutex, updated_cached_result_data,))
   rev_thread = threading.Thread(target=_get_rev_schedule, name='rev_thread', args=(mutex, updated_cached_result_data,))
 
   absolute_thread.start()
   ally_thread.start()
+  anarchy_thread.start()
   barrys_thread.start()
   rev_thread.start()
   absolute_thread.join()
   ally_thread.join()
+  anarchy_thread.join()
   barrys_thread.join()
   rev_thread.join()
 

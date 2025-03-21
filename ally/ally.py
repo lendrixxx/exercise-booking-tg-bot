@@ -1,6 +1,5 @@
 import calendar
 import global_variables
-import logging
 import requests
 from bs4 import BeautifulSoup
 from common.data_types import CapacityInfo, ClassAvailability, ClassData, RESPONSE_AVAILABILITY_MAP, ResultData, StudioLocation, StudioType

@@ -1,7 +1,6 @@
 import calendar
 import global_variables
 import json
-import logging
 import os
 import pytz
 import requests

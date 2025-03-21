@@ -10,6 +10,7 @@ def instructors_list_handler(message: telebot.types.Message) -> None:
   text += '*Barrys Instructors:* ' + ', '.join(global_variables.BARRYS_INSTRUCTOR_NAMES) + '\n\n'
   text += '*Absolute Instructors:* ' + ', '.join(global_variables.ABSOLUTE_INSTRUCTOR_NAMES) + '\n\n'
   text += '*Ally Instructors:* ' + ', '.join(global_variables.ALLY_INSTRUCTOR_NAMES) + '\n\n'
+  text += '*Anarchy Instructors:* ' + ', '.join(global_variables.ANARCHY_INSTRUCTOR_NAMES) + '\n\n'
   sent_msg = global_variables.BOT.send_message(message.chat.id, text, parse_mode='Markdown')
 
 @global_variables.BOT.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'instructors-selection')
@@ -31,6 +32,8 @@ def show_instructors_callback_query_handler(query: telebot.types.CallbackQuery) 
     text += '*Ally Instructors:* ' + ', '.join(global_variables.ALLY_INSTRUCTOR_NAMES) + '\n\n'
   if 'Ally (Recovery)' in query_data.studios:
     text += 'No instructors for Ally (Recovery)' + '\n\n'
+  if 'Anarchy' in query_data.studios:
+    text += '*Anarchy Instructors:* ' + ', '.join(global_variables.ANARCHY_INSTRUCTOR_NAMES) + '\n\n'
 
   sent_msg = global_variables.BOT.send_message(query.message.chat.id, text, parse_mode='Markdown')
   instructors_selection_handler(query.from_user.id, query.message)
@@ -76,6 +79,13 @@ def ally_pilates_instructors_callback_query_handler(query: telebot.types.Callbac
   global_variables.USER_MANAGER.update_query_data_current_studio(query.from_user.id, query.message.chat.id, 'Ally (Pilates)')
   sent_msg = global_variables.BOT.send_message(query.message.chat.id, text, parse_mode='Markdown')
   global_variables.BOT.register_next_step_handler(sent_msg, instructors_input_handler, query.from_user.id, global_variables.ALLY_INSTRUCTORID_MAP)
+
+@global_variables.BOT.callback_query_handler(func=lambda query: eval(query.data)['step'] == 'anarchy-instructors')
+def anarchy_instructors_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
+  text = 'Enter instructor names separated by a comma\ne.g.: *lyon*, *isabelle*\nEnter "*all*" to check for all instructors'
+  global_variables.USER_MANAGER.update_query_data_current_studio(query.from_user.id, query.message.chat.id, 'Anarchy')
+  sent_msg = global_variables.BOT.send_message(query.message.chat.id, text, parse_mode='Markdown')
+  global_variables.BOT.register_next_step_handler(sent_msg, instructors_input_handler, query.from_user.id, global_variables.ANARCHY_INSTRUCTORID_MAP)
 
 def instructors_input_handler(message: telebot.types.Message, user_id: int, instructorid_map: dict[str, int]) -> None:
   query_data = global_variables.USER_MANAGER.get_query_data(user_id, message.chat.id)
@@ -140,6 +150,9 @@ def instructors_selection_handler(user_id: int, message: telebot.types.Message) 
   if 'Ally (Pilates)' in query_data.studios:
     ally_pilates_instructors_button = telebot.types.InlineKeyboardButton('Enter Ally (Pilates) Instructor(s)', callback_data='{"step": "ally-pilates-instructors"}')
     keyboard.add(ally_pilates_instructors_button)
+  if 'Anarchy' in query_data.studios:
+    anarchy_instructors_button = telebot.types.InlineKeyboardButton('Enter Anarchy Instructor(s)', callback_data='{"step": "anarchy-instructors"}')
+    keyboard.add(anarchy_instructors_button)
 
   show_instructors_button = telebot.types.InlineKeyboardButton('Show Names of Instructors', callback_data='{"step": "show-instructors"}')
   next_button = telebot.types.InlineKeyboardButton('Next ▶️', callback_data='{"step": "main-page-handler"}')

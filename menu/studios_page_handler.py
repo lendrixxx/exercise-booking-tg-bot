@@ -9,7 +9,8 @@ def get_studios_keyboard(user_id: int, chat_id: int) -> telebot.types.InlineKeyb
   studios_keyboard = telebot.types.InlineKeyboardMarkup()
   studios_keyboard.add(button_data.studios_buttons_map['Rev'], button_data.studios_buttons_map['Barrys'])
   studios_keyboard.add(button_data.studios_buttons_map['Absolute (Spin)'], button_data.studios_buttons_map['Absolute (Pilates)'])
-  studios_keyboard.add(button_data.studios_buttons_map['Ally (Spin)'], button_data.studios_buttons_map['Ally (Pilates)'], button_data.studios_buttons_map['Ally (Recovery)'])
+  studios_keyboard.add(button_data.studios_buttons_map['Ally (Spin)'], button_data.studios_buttons_map['Ally (Pilates)'])
+  studios_keyboard.add(button_data.studios_buttons_map['Ally (Recovery)'], button_data.studios_buttons_map['Anarchy'])
   studios_keyboard.add(button_data.studios_select_all_button, button_data.studios_unselect_all_button)
   studios_keyboard.add(button_data.studios_next_button)
   return studios_keyboard
@@ -35,6 +36,8 @@ def get_locations_keyboard(user_id: int, chat_id: int) -> telebot.types.InlineKe
     locations_keyboard.add(button_data.studios_locations_buttons_map['Ally (Spin)']['Cross Street'])
   elif query_data.current_studio == 'Ally (Pilates)':
     locations_keyboard.add(button_data.studios_locations_buttons_map['Ally (Pilates)']['Cross Street'])
+  elif query_data.current_studio == 'Anarchy':
+    locations_keyboard.add(button_data.studios_locations_buttons_map['Anarchy']['Robinson'])
   locations_keyboard.add(button_data.locations_select_all_button, button_data.locations_unselect_all_button)
   locations_keyboard.add(button_data.locations_select_more_studios_button, button_data.locations_next_button)
   return locations_keyboard
@@ -69,6 +72,9 @@ def studios_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
   elif selected_studio == StudioType.AllySpin or selected_studio == StudioType.AllyPilates or selected_studio == StudioType.AllyRecovery:
     global_variables.USER_MANAGER.update_query_data_current_studio(query.from_user.id, query.message.chat.id, selected_studio)
     select_location_handler(query.from_user.id, query.message, StudioLocation.CrossStreet)
+  elif selected_studio == StudioType.Anarchy:
+    global_variables.USER_MANAGER.update_query_data_current_studio(query.from_user.id, query.message.chat.id, selected_studio)
+    select_location_handler(query.from_user.id, query.message, StudioLocation.Robinson)
   else:
     global_variables.USER_MANAGER.update_query_data_current_studio(query.from_user.id, query.message.chat.id, selected_studio)
     locations_handler(query.from_user.id, query.message)

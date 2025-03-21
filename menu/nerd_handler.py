@@ -89,6 +89,8 @@ def nerd_input_handler(message: telebot.types.Message) -> None:
         instructor_list = global_variables.ABSOLUTE_INSTRUCTOR_NAMES
       elif current_studio == StudioType.AllyPilates or current_studio == StudioType.AllySpin or current_studio == StudioType.AllyRecovery:
         instructor_list = global_variables.ALLY_INSTRUCTOR_NAMES
+      elif current_studio == StudioType.Anarchy:
+        instructor_list = global_variables.ANARCHY_INSTRUCTOR_NAMES
 
       selected_instructors = [x.strip().lower() for x in input_str.split(',')]
       invalid_instructors = []

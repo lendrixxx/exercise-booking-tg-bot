@@ -46,6 +46,7 @@ class ButtonData:
       'Ally (Spin)' : InlineKeyboardButton('Ally (Spin)', callback_data='{"studios": "AllySpin", "step": "studios"}'),
       'Ally (Pilates)' : InlineKeyboardButton('Ally (Pilates)', callback_data='{"studios": "AllyPilates", "step": "studios"}'),
       'Ally (Recovery)' : InlineKeyboardButton('Ally (Recovery)', callback_data='{"studios": "AllyRecovery", "step": "studios"}'),
+      'Anarchy' : InlineKeyboardButton('Anarchy', callback_data='{"studios": "Anarchy", "step": "studios"}'),
     }
 
   def __get_default_studios_locations_buttons_map(self, selected: bool=False) -> dict[StudioType, dict[StudioLocation, InlineKeyboardButton]]:
@@ -81,6 +82,9 @@ class ButtonData:
       },
       'Ally (Recovery)' : {
         'Cross Street' : InlineKeyboardButton('Cross Street ✅' if selected else 'Cross Street', callback_data='{"location": "CrossStreet", "step": "locations"}'),
+      },
+      'Anarchy' : {
+        'Robinson' : InlineKeyboardButton('Robinson ✅' if selected else 'Robinson', callback_data='{"location": "Robinson", "step": "locations"}'),
       },
     }
 
@@ -128,6 +132,7 @@ class UserManager:
       'Ally (Spin)': StudioData(locations=STUDIO_LOCATIONS_MAP[StudioType.AllySpin]),
       'Ally (Pilates)': StudioData(locations=STUDIO_LOCATIONS_MAP[StudioType.AllyPilates]),
       'Ally (Recovery)': StudioData(locations=STUDIO_LOCATIONS_MAP[StudioType.AllyRecovery]),
+      'Anarchy': StudioData(locations=STUDIO_LOCATIONS_MAP[StudioType.Anarchy]),
     }
 
   def update_query_data_days(self, user_id, chat_id, days):
