@@ -82,10 +82,11 @@ def update_cached_result_data() -> None:
   global_variables.LOGGER.info('Successfully updated cached result data!')
 
 def schedule_update_cached_result_data(stop_event) -> None:
-  schedule.every().day.at('00:00', 'Asia/Singapore').do(update_cached_result_data)
-  schedule.every().day.at('06:00', 'Asia/Singapore').do(update_cached_result_data)
-  schedule.every().day.at('12:00', 'Asia/Singapore').do(update_cached_result_data)
-  schedule.every().day.at('18:00', 'Asia/Singapore').do(update_cached_result_data)
+  current_time = datetime.strptime('00:00', '%H:%M')
+  while current_time.strftime('%H:%M') < '23:59':
+    schedule.every().day.at(current_time.strftime('%H:%M'), 'Asia/Singapore').do(update_cached_result_data)
+    current_time += timedelta(minutes=10)
+
   while not stop_event.is_set():
     schedule.run_pending()
     time.sleep(1)
