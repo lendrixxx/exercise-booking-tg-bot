@@ -12,17 +12,13 @@ import telebot
 import time
 import threading
 import schedule
-from absolute.absolute import get_absolute_schedule
-from absolute.absolute import get_instructorid_map as get_absolute_instructorid_map
-from ally.ally import get_ally_schedule
-from ally.ally import get_instructorid_map as get_ally_instructorid_map
-from anarchy.anarchy import get_anarchy_schedule
-from anarchy.anarchy import get_instructorid_map as get_anarchy_instructorid_map
-from barrys.barrys import get_barrys_schedule
-from barrys.barrys import get_instructorid_map as get_barrys_instructorid_map
+from absolute.absolute import get_absolute_schedule_and_instructorid_map
+from ally.ally import get_ally_schedule_and_instructorid_map
+from anarchy.anarchy import get_anarchy_schedule_and_instructorid_map
+from barrys.barrys import get_barrys_schedule_and_instructorid_map
 from common.data_types import ResultData, StudioLocation
-from rev.rev import get_rev_schedule
-from rev.rev import get_instructorid_map as get_rev_instructorid_map
+from datetime import datetime, timedelta
+from rev.rev import get_rev_schedule_and_instructorid_map
 
 @global_variables.BOT.message_handler(commands=['start'])
 def start_handler(message: telebot.types.Message) -> None:
@@ -33,37 +29,32 @@ def start_handler(message: telebot.types.Message) -> None:
 
 def update_cached_result_data() -> None:
   def _get_absolute_schedule(mutex, updated_cached_result_data):
-    global_variables.ABSOLUTE_INSTRUCTORID_MAP = get_absolute_instructorid_map()
+    absolute_schedule, global_variables.ABSOLUTE_INSTRUCTORID_MAP = get_absolute_schedule_and_instructorid_map()
     global_variables.ABSOLUTE_INSTRUCTOR_NAMES = [instructor.lower() for instructor in list(global_variables.ABSOLUTE_INSTRUCTORID_MAP)]
-    absolute_schedule = get_absolute_schedule()
     with mutex:
       updated_cached_result_data += absolute_schedule
 
   def _get_ally_schedule(mutex, updated_cached_result_data):
-    global_variables.ALLY_INSTRUCTORID_MAP = get_ally_instructorid_map()
+    ally_schedule, global_variables.ALLY_INSTRUCTORID_MAP = get_ally_schedule_and_instructorid_map()
     global_variables.ALLY_INSTRUCTOR_NAMES = [instructor.lower() for instructor in list(global_variables.ALLY_INSTRUCTORID_MAP)]
-    ally_schedule = get_ally_schedule()
     with mutex:
       updated_cached_result_data += ally_schedule
 
   def _get_anarchy_schedule(mutex, updated_cached_result_data):
-    global_variables.ANARCHY_INSTRUCTORID_MAP = get_anarchy_instructorid_map()
+    anarchy_schedule, global_variables.ANARCHY_INSTRUCTORID_MAP = get_anarchy_schedule_and_instructorid_map()
     global_variables.ANARCHY_INSTRUCTOR_NAMES = [instructor.lower() for instructor in list(global_variables.ANARCHY_INSTRUCTORID_MAP)]
-    anarchy_schedule = get_anarchy_schedule()
     with mutex:
       updated_cached_result_data += anarchy_schedule
 
   def _get_barrys_schedule(mutex, updated_cached_result_data):
-    global_variables.BARRYS_INSTRUCTORID_MAP = get_barrys_instructorid_map()
+    barrys_schedule, global_variables.BARRYS_INSTRUCTORID_MAP = get_barrys_schedule_and_instructorid_map()
     global_variables.BARRYS_INSTRUCTOR_NAMES = [instructor.lower() for instructor in list(global_variables.BARRYS_INSTRUCTORID_MAP)]
-    barrys_schedule = get_barrys_schedule()
     with mutex:
       updated_cached_result_data += barrys_schedule
 
   def _get_rev_schedule(mutex, updated_cached_result_data):
-    global_variables.REV_INSTRUCTORID_MAP = get_rev_instructorid_map()
+    rev_schedule, global_variables.REV_INSTRUCTORID_MAP = get_rev_schedule_and_instructorid_map()
     global_variables.REV_INSTRUCTOR_NAMES = [instructor.lower() for instructor in list(global_variables.REV_INSTRUCTORID_MAP)]
-    rev_schedule = get_rev_schedule()
     with mutex:
       updated_cached_result_data += rev_schedule
 

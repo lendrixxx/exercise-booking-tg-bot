@@ -122,3 +122,6 @@ def get_instructorid_map() -> dict[str, int]:
     return {}
 
   return instructorid_map
+
+def get_rev_schedule_and_instructorid_map() -> tuple[ResultData, dict[str, int]]:
+  return get_rev_schedule(), get_instructorid_map()

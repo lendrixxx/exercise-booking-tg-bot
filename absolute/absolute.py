@@ -2,12 +2,11 @@ import calendar
 import global_variables
 import re
 import requests
-from absolute.data import ROOM_ID_TO_STUDIO_TYPE_MAP
+from absolute.data import LOCATION_MAP, LOCATION_STR_MAP, ROOM_ID_TO_STUDIO_TYPE_MAP
 from bs4 import BeautifulSoup
 from common.data_types import CapacityInfo, ClassAvailability, ClassData, RESPONSE_AVAILABILITY_MAP, ResultData, StudioLocation, StudioType
 from copy import copy
 from datetime import datetime, timedelta
-from absolute.data import LOCATION_MAP, LOCATION_STR_MAP
 
 def send_get_schedule_request(locations: list[StudioLocation], week: int) -> requests.models.Response:
   url = 'https://absoluteboutiquefitness.zingfit.com/reserve/index.cfm?action=Reserve.chooseClass'
@@ -28,8 +27,7 @@ def send_get_schedule_request(locations: list[StudioLocation], week: int) -> req
 
   return requests.get(url=url, params=params)
 
-def parse_get_schedule_response(response: requests.models.Response, locations: list[StudioLocation], week: int) -> dict[datetime.date, list[ClassData]]:
-  soup = BeautifulSoup(response.text, 'html.parser')
+def get_schedule_from_response_soup(soup: BeautifulSoup, locations: list[StudioLocation], week: int) -> dict[datetime.date, list[ClassData]]:
   schedule_table = soup.find('table', id='reserve', class_='scheduleTable')
   if schedule_table is None:
     global_variables.LOGGER.warning(f'Failed to get schedule - Schedule table not found: {soup}')
@@ -117,68 +115,71 @@ def parse_get_schedule_response(response: requests.models.Response, locations: l
 
   return result_dict
 
-def get_absolute_schedule() -> ResultData:
-  def _get_absolute_schedule_internal(output_result: ResultData, locations: list[StudioLocation]) -> dict[datetime.date, list[ClassData]]:
-    # REST API can only select one week at a time
-    # Absolute schedule only shows up to 1.5 weeks in advance
-    for week in range(0, 2):
-      get_schedule_response = send_get_schedule_request(locations=locations, week=week)
-      date_class_data_list_dict = parse_get_schedule_response(response=get_schedule_response, locations=locations, week=week)
-      output_result.add_classes(date_class_data_list_dict)
+def get_instructorid_map_from_response_soup(soup: BeautifulSoup) -> dict[str, int]:
+  reserve_filter = soup.find('ul', id='reserveFilter')
+  if reserve_filter is None:
+    global_variables.LOGGER.warning(f'Failed to get list of instructors - Reserve filter not found: {soup}')
+    return {}
 
+  instructor_filter = reserve_filter.find('li', id='reserveFilter1')
+  if instructor_filter is None:
+    global_variables.LOGGER.warning(f'Failed to get list of instructors - Instructor filter not found: {reserve_filter}')
+    return {}
+
+  instructorid_map = {}
+  for instructor in instructor_filter.find_all('li'):
+    instructor_name = instructor.string
+    if instructor.a is None:
+      global_variables.LOGGER.warning(f'Failed to get id of instructor {instructor_name} - A tag is null: {instructor}')
+      continue
+
+    href = instructor.a.get('href')
+    if href is None:
+      global_variables.LOGGER.warning(f'Failed to get id of instructor {instructor_name} - Href is null: {instructor.a}')
+      continue
+
+    match = re.search(r'instructorid=(\d+)', href)
+    if match is None:
+      global_variables.LOGGER.warning(f'Failed to get id of instructor {instructor_name} - Regex failed to match: {href}')
+      continue
+
+    instructorid_map[instructor_name.lower()] = match.group(1)
+
+  return instructorid_map
+
+def get_absolute_schedule_and_instructorid_map() -> tuple[ResultData, dict[str, int]]:
   result = ResultData()
-  # REST API can only select maximum of 5 locations at a time, but there are 6 locations
-  location_map_list = list(LOCATION_MAP)
-  _get_absolute_schedule_internal(result, location_map_list[0:1])
-  _get_absolute_schedule_internal(result, location_map_list[1:])
-  return result
-
-def get_instructorid_map() -> dict[str, int]:
-  def _get_instructorid_map_internal(response: requests.models.Response) -> dict[str, int]:
-    soup = BeautifulSoup(response.text, 'html.parser')
-    reserve_filter = soup.find('ul', id='reserveFilter')
-    if reserve_filter is None:
-      global_variables.LOGGER.warning(f'Failed to get list of instructors - Reserve filter not found: {soup}')
-      return {}
-
-    instructor_filter = reserve_filter.find('li', id='reserveFilter1')
-    if instructor_filter is None:
-      global_variables.LOGGER.warning(f'Failed to get list of instructors - Instructor filter not found: {reserve_filter}')
-      return {}
-
-    instructorid_map = {}
-    for instructor in instructor_filter.find_all('li'):
-      instructor_name = instructor.string
-      if instructor.a is None:
-        global_variables.LOGGER.warning(f'Failed to get id of instructor {instructor_name} - A tag is null: {instructor}')
-        continue
-
-      href = instructor.a.get('href')
-      if href is None:
-        global_variables.LOGGER.warning(f'Failed to get id of instructor {instructor_name} - Href is null: {instructor.a}')
-        continue
-
-      match = re.search(r'instructorid=(\d+)', href)
-      if match is None:
-        global_variables.LOGGER.warning(f'Failed to get id of instructor {instructor_name} - Regex failed to match: {href}')
-        continue
-
-      instructorid_map[instructor_name.lower()] = match.group(1)
-
-    return instructorid_map
-
   instructorid_map = {}
   location_map_list = list(LOCATION_MAP)
 
   # REST API can only select one week at a time
   # Absolute schedule only shows up to 1.5 weeks in advance
   for week in range(0, 2):
-    get_schedule_response = send_get_schedule_request(locations=location_map_list[0:1], week=week)
-    current_instructorid_map = _get_instructorid_map_internal(response=get_schedule_response)
+    # REST API can only select maximum of 5 locations at a time, but there are 6 locations
+    # Send first request for first location
+    locations = location_map_list[0:1]
+    get_schedule_response = send_get_schedule_request(locations=locations, week=week)
+    soup = BeautifulSoup(get_schedule_response.text, 'html.parser')
+
+    # Get schedule
+    date_class_data_list_dict = get_schedule_from_response_soup(soup=soup, locations=locations, week=week)
+    result.add_classes(date_class_data_list_dict)
+
+    # Get instructor id map
+    current_instructorid_map = get_instructorid_map_from_response_soup(soup=soup)
     instructorid_map = {**instructorid_map, **current_instructorid_map}
 
-    get_schedule_response = send_get_schedule_request(locations=location_map_list[1:], week=week)
-    current_instructorid_map = _get_instructorid_map_internal(response=get_schedule_response)
+    # Send second request for last 5 locations
+    locations = location_map_list[1:]
+    get_schedule_response = send_get_schedule_request(locations=locations, week=week)
+
+    # Get schedule
+    soup = BeautifulSoup(get_schedule_response.text, 'html.parser')
+    date_class_data_list_dict = get_schedule_from_response_soup(soup=soup, locations=locations, week=week)
+    result.add_classes(date_class_data_list_dict)
+
+    # Get instructor id map
+    current_instructorid_map = get_instructorid_map_from_response_soup(soup=soup)
     instructorid_map = {**instructorid_map, **current_instructorid_map}
 
-  return instructorid_map
+  return result, instructorid_map
