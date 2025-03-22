@@ -31,6 +31,10 @@ app = Flask(__name__)
 def home():
     return "Dummy Server is running"
 
+@app.route("/health", methods=["GET"])
+def health_check():
+    return "OK", 200  # Respond with 200 OK for health check
+
 @global_variables.BOT.message_handler(commands=['start'])
 def start_handler(message: telebot.types.Message) -> None:
     global_variables.HISTORY_HANDLER.add(int(time.time()), message.from_user.id, message.chat.id, message.from_user.username, message.from_user.first_name, message.from_user.last_name, 'start')
