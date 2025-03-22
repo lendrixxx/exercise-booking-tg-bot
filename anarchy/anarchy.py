@@ -21,7 +21,7 @@ def send_get_schedule_request(start_date: datetime.date, end_date: datetime.date
 
   return requests.get(url=url, params=params)
 
-def parse_get_schedule_response(response, days: list[str]) -> dict[datetime.date, list[ClassData]]:
+def parse_get_schedule_response(response: requests.models.Response) -> dict[datetime.date, list[ClassData]]:
   match = re.search(r'^\w+\((.*)\);?$', response.text, re.DOTALL)
   if match:
     try:
@@ -60,10 +60,6 @@ def parse_get_schedule_response(response, days: list[str]) -> dict[datetime.date
       continue
 
     start_datetime = datetime.fromisoformat(start_datetime_str)
-
-    if 'All' not in days and calendar.day_name[start_datetime.weekday()] not in days:
-      continue
-
     session_name_div = session_div.find('div', class_='bw-session__name')
     if session_name_div is None:
       global_variables.LOGGER.warning(f'Failed to get session name: {session_div}')
@@ -93,19 +89,19 @@ def parse_get_schedule_response(response, days: list[str]) -> dict[datetime.date
 
   return result_dict
 
-def get_anarchy_schedule(weeks: int, days: list[str], instructors: list[str], instructorid_map: dict[str, int]) -> ResultData:
+def get_anarchy_schedule() -> ResultData:
   result = ResultData()
   start_date = datetime.now().date()
-  end_date = start_date + timedelta(weeks=weeks)
+  end_date = start_date + timedelta(weeks=3) # Anarchy schedule only shows up to 3 weeks in advance
   get_schedule_response = send_get_schedule_request(start_date=start_date, end_date=end_date)
-  date_class_data_list_dict = parse_get_schedule_response(response=get_schedule_response, days=days)
+  date_class_data_list_dict = parse_get_schedule_response(response=get_schedule_response)
   result.add_classes(date_class_data_list_dict)
   return result
 
 def get_instructorid_map() -> dict[str, int]:
   instructorid_map = {}
   start_date = datetime.now().date()
-  end_date = start_date + timedelta(weeks=3)
+  end_date = start_date + timedelta(weeks=3) # Anarchy schedule only shows up to 3 weeks in advance
   get_schedule_response = send_get_schedule_request(start_date=start_date, end_date=end_date)
   match = re.search(r'^\w+\((.*)\);?$', get_schedule_response.text, re.DOTALL)
   if match:

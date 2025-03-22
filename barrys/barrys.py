@@ -7,42 +7,18 @@ from copy import copy
 from datetime import datetime, timedelta
 from barrys.data import LOCATION_MAP, RESPONSE_LOCATION_TO_STUDIO_LOCATION_MAP
 
-def send_get_schedule_request(locations: list[StudioLocation], week: int, instructor: str, instructorid_map: dict[str, int]) -> requests.models.Response:
+def send_get_schedule_request(week: int) -> requests.models.Response:
   url = 'https://apac.barrysbootcamp.com.au/reserve/index.cfm?action=Reserve.chooseClass'
-  params = {'wk': max(0, min(week, 2))}
-
-  if 'All' in locations:
-    params = {**params, **{'site': 1, 'site2': 12}}
-  else:
-    site_param_name = 'site'
-    for location in locations:
-      params[site_param_name] = LOCATION_MAP[location]
-      if site_param_name == 'site':
-        site_param_name = 'site2'
-      else:
-        break
-
-  if instructor != 'All':
-    params = {**params, **{'instructorid': instructorid_map[instructor]}}
-
+  params = {'wk': max(0, min(week, 2)), 'site': 1, 'site2': 12}
   return requests.get(url=url, params=params)
 
-def parse_get_schedule_response(response, week: int, days: list[str], locations: list[StudioLocation]) -> dict[datetime.date, list[ClassData]]:
+def parse_get_schedule_response(response: requests.models.Response, week: int) -> dict[datetime.date, list[ClassData]]:
   soup = BeautifulSoup(response.text, 'html.parser')
-
-  if len(locations) == 1 and StudioLocation.All not in locations:
-    location = locations[0]
-  else:
-    location = StudioLocation.Null
-
   result_dict = {}
   # Get yesterday's date and update date at the start of each loop
   current_date = datetime.now().date() + timedelta(weeks=week) - timedelta(days=1)
   for _ in range(7):
     current_date = current_date + timedelta(days=1)
-    if 'All' not in days and calendar.day_name[current_date.weekday()] not in days:
-      continue
-
     div_id = f'day{current_date.strftime("%Y%m%d")}'
     schedule_pane_div_list = [div for div in soup.find_all('div') if div.get('id') == div_id]
     schedule_pane_div_list_len = len(schedule_pane_div_list)
@@ -67,7 +43,7 @@ def parse_get_schedule_response(response, week: int, days: list[str], locations:
 
       class_details = ClassData(
         studio=StudioType.Barrys,
-        location=location,
+        location=StudioLocation.Null,
         name='',
         instructor='',
         time='',
@@ -95,15 +71,14 @@ def parse_get_schedule_response(response, week: int, days: list[str], locations:
 
   return result_dict
 
-def get_barrys_schedule(locations: list[StudioLocation], weeks: int, days: list[str], instructors: list[str], instructorid_map: dict[str, int]) -> ResultData:
+def get_barrys_schedule() -> ResultData:
   result = ResultData()
-  # REST API can only select one instructor at a time
-  for instructor in instructors:
-    # REST API can only select one week at a time
-    for week in range(0, weeks):
-      get_schedule_response = send_get_schedule_request(locations=locations, instructor=instructor, week=week, instructorid_map=instructorid_map)
-      date_class_data_list_dict = parse_get_schedule_response(response=get_schedule_response, week=week, days=days, locations=locations)
-      result.add_classes(date_class_data_list_dict)
+  # REST API can only select one week at a time
+  # Barrys schedule only shows up to 3 weeks in advance
+  for week in range(0, 3):
+    get_schedule_response = send_get_schedule_request(week=week)
+    date_class_data_list_dict = parse_get_schedule_response(response=get_schedule_response, week=week)
+    result.add_classes(date_class_data_list_dict)
 
   return result
 
@@ -138,7 +113,7 @@ def get_instructorid_map() -> dict[str, int]:
   # REST API can only select one week at a time
   instructorid_map = {}
   for week in range(0, 3):
-    get_schedule_response = send_get_schedule_request(locations=['All'], instructor='All', week=week, instructorid_map=None)
+    get_schedule_response = send_get_schedule_request(week=week)
     current_instructorid_map = _get_instructorid_map_internal(response=get_schedule_response)
     instructorid_map = {**instructorid_map, **current_instructorid_map}
 

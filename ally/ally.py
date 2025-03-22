@@ -6,16 +6,12 @@ from common.data_types import CapacityInfo, ClassAvailability, ClassData, RESPON
 from copy import copy
 from datetime import datetime, timedelta
 
-def send_get_schedule_request(week: int, instructor: str, instructorid_map: dict[str, int]) -> requests.models.Response:
+def send_get_schedule_request(week: int) -> requests.models.Response:
   url = 'https://ally.zingfit.com/reserve/index.cfm?action=Reserve.chooseClass'
   params = {'wk': week, 'site': 1} # Ally only has 1 location currently
-
-  if instructor != 'All':
-    params = {**params, **{'instructorid': instructorid_map[instructor]}}
-
   return requests.get(url=url, params=params)
 
-def parse_get_schedule_response(response, week: int, days: list[str]) -> dict[datetime.date, list[ClassData]]:
+def parse_get_schedule_response(response: requests.models.Response, week: int) -> dict[datetime.date, list[ClassData]]:
   soup = BeautifulSoup(response.text, 'html.parser')
   reserve_table_list = [table for table in soup.find_all('table') if table.get('id') == 'reserve']
   reserve_table_list_len = len(reserve_table_list)
@@ -43,9 +39,6 @@ def parse_get_schedule_response(response, week: int, days: list[str]) -> dict[da
   result_dict = {}
   for reserve_table_data in reserve_table_datas:
     current_date = current_date + timedelta(days=1)
-    if 'All' not in days and calendar.day_name[current_date.weekday()] not in days:
-      continue
-
     result_dict[current_date] = []
     reserve_table_data_div_list = reserve_table_data.find_all('div')
     if len(reserve_table_data_div_list) == 0:
@@ -100,15 +93,14 @@ def parse_get_schedule_response(response, week: int, days: list[str]) -> dict[da
 
   return result_dict
 
-def get_ally_schedule(weeks: int, days: list[str], instructors: list[str], instructorid_map: dict[str, int]) -> ResultData:
+def get_ally_schedule() -> ResultData:
   result = ResultData()
-  # REST API can only select one instructor at a time
-  for instructor in instructors:
-    # REST API can only select one week at a time
-    for week in range(0, weeks):
-      get_schedule_response = send_get_schedule_request(instructor=instructor, week=week, instructorid_map=instructorid_map)
-      date_class_data_list_dict = parse_get_schedule_response(response=get_schedule_response, week=week, days=days)
-      result.add_classes(date_class_data_list_dict)
+  # REST API can only select one week at a time
+  # Ally schedule only shows up to 2 weeks in advance
+  for week in range(0, 2):
+    get_schedule_response = send_get_schedule_request(week=week)
+    date_class_data_list_dict = parse_get_schedule_response(response=get_schedule_response, week=week)
+    result.add_classes(date_class_data_list_dict)
   return result
 
 def get_instructorid_map() -> dict[str, int]:
@@ -142,7 +134,7 @@ def get_instructorid_map() -> dict[str, int]:
   # REST API can only select one week at a time
   instructorid_map = {}
   for week in range(0, 2):
-    get_schedule_response = send_get_schedule_request(instructor='All', week=week, instructorid_map=None)
+    get_schedule_response = send_get_schedule_request(week=week)
     current_instructorid_map = _get_instructorid_map_internal(response=get_schedule_response)
     instructorid_map = {**instructorid_map, **current_instructorid_map}
 
