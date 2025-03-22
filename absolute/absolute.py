@@ -1,6 +1,8 @@
 import calendar
 import global_variables
+import re
 import requests
+from absolute.data import ROOM_ID_TO_STUDIO_TYPE_MAP
 from bs4 import BeautifulSoup
 from common.data_types import CapacityInfo, ClassAvailability, ClassData, RESPONSE_AVAILABILITY_MAP, ResultData, StudioLocation, StudioType
 from copy import copy
@@ -28,34 +30,31 @@ def send_get_schedule_request(locations: list[StudioLocation], week: int) -> req
 
 def parse_get_schedule_response(response: requests.models.Response, locations: list[StudioLocation], week: int) -> dict[datetime.date, list[ClassData]]:
   soup = BeautifulSoup(response.text, 'html.parser')
-  reserve_table_list = [table for table in soup.find_all('table') if table.get('id') == 'reserve']
-  reserve_table_list_len = len(reserve_table_list)
-  if reserve_table_list_len != 1:
-    global_variables.LOGGER.warning(f'Failed to get schedule - Expected 1 reserve table, got {reserve_table_list_len} instead')
+  schedule_table = soup.find('table', id='reserve', class_='scheduleTable')
+  if schedule_table is None:
+    global_variables.LOGGER.warning(f'Failed to get schedule - Schedule table not found: {soup}')
     return {}
 
-  reserve_table = reserve_table_list[0]
-  if reserve_table.tbody is None:
+  if schedule_table.tbody is None:
+    global_variables.LOGGER.warning(f'Failed to get schedule - Schedule table tbody not found: {schedule_table}')
     return {}
 
-  reserve_table_rows = reserve_table.tbody.find_all('tr')
-  reserve_table_rows_len = len(reserve_table_rows)
-  if reserve_table_rows_len != 1:
-    global_variables.LOGGER.warning(f'Failed to get schedule - Expected 1 schedule row, got {reserve_table_rows_len} rows instead')
+  schedule_table_row = schedule_table.tbody.find('tr')
+  if schedule_table_row is None:
+    global_variables.LOGGER.warning(f'Failed to get schedule - Schedule table row not found: {schedule_table}')
     return {}
 
-  reserve_table_datas = reserve_table_rows[0].find_all('td')
-  if len(reserve_table_datas) == 0:
-    global_variables.LOGGER.warning('Failed to get schedule - Table data is null')
+  schedule_table_data_list = schedule_table_row.find_all('td')
+  if len(schedule_table_data_list) == 0:
+    global_variables.LOGGER.warning(f'Failed to get schedule - Schedule table data is null: {schedule_table_row}')
     return {}
 
   # Get yesterday's date and update date at the start of each loop
   current_date = datetime.now().date() + timedelta(weeks=week) - timedelta(days=1)
   result_dict = {}
-  for reserve_table_data in reserve_table_datas:
+  for schedule_table_data in schedule_table_data_list:
     current_date = current_date + timedelta(days=1)
-    result_dict[current_date] = []
-    reserve_table_data_div_list = reserve_table_data.find_all('div')
+    reserve_table_data_div_list = schedule_table_data.find_all('div')
     if len(reserve_table_data_div_list) == 0:
       # Reserve table data div might be empty because schedule is only shown up to 1.5 weeks in advance
       continue
@@ -63,53 +62,65 @@ def parse_get_schedule_response(response: requests.models.Response, locations: l
     for reserve_table_data_div in reserve_table_data_div_list:
       reserve_table_data_div_class_list = reserve_table_data_div.get('class')
       if len(reserve_table_data_div_class_list) < 2:
-        availability = ClassAvailability.Null
+        availability = ClassAvailability.Null # Class is over
       else:
         availability = RESPONSE_AVAILABILITY_MAP[reserve_table_data_div_class_list[1]]
 
+      schedule_class_span = reserve_table_data_div.find('span', class_='scheduleClass')
+      if schedule_class_span is None:
+        # Check if class was cancelled or is an actual error
+        is_cancelled = reserve_table_data_div.find('span', class_='scheduleCancelled')
+        if is_cancelled is None:
+          global_variables.LOGGER.warning(f'Failed to get session name: {reserve_table_data_div}')
+        continue
+
+      schedule_instruc_span = reserve_table_data_div.find('span', class_='scheduleInstruc')
+      if schedule_instruc_span is None:
+        global_variables.LOGGER.warning(f'Failed to get session instructor: {reserve_table_data_div}')
+        continue
+
+      schedule_time_span = reserve_table_data_div.find('span', class_='scheduleTime')
+      if schedule_time_span is None:
+        global_variables.LOGGER.warning(f'Failed to get session time: {reserve_table_data_div}')
+        continue
+      schedule_time = schedule_time_span.get_text().strip()
+      schedule_time = schedule_time[:schedule_time.find('M') + 1]
+
+      # scheduleSite span class is only provided if request has multiple locations
+      if len(locations) == 1:
+        location = locations[0]
+      else:
+        schedule_site_span = reserve_table_data_div.find('span', class_='scheduleSite')
+        if schedule_site_span is None:
+          global_variables.LOGGER.warning(f'Failed to get session location: {reserve_table_data_div}')
+          continue
+        location = LOCATION_STR_MAP[schedule_site_span.get_text().strip()]
+
+      room = reserve_table_data_div.get('data-room')
+      if room is None:
+        global_variables.LOGGER.warning(f'Failed to get session room: {reserve_table_data_div}')
+        continue
+
       class_details = ClassData(
-        studio=StudioType.AbsoluteSpin,
-        location=StudioLocation.Null,
-        name='',
-        instructor='',
-        time='',
+        studio=ROOM_ID_TO_STUDIO_TYPE_MAP[room],
+        location=location,
+        name=schedule_class_span.get_text().strip(),
+        instructor=schedule_instruc_span.get_text().strip(),
+        time=schedule_time,
         availability=availability,
         capacity_info=CapacityInfo())
-      for reserve_table_data_div_span in reserve_table_data_div.find_all('span'):
-        reserve_table_data_div_span_class_list = reserve_table_data_div_span.get('class')
-        if len(reserve_table_data_div_span_class_list) == 0:
-          global_variables.LOGGER.warning('Failed to get schedule - Table data span class is null')
-          continue
 
-        reserve_table_data_div_span_class = reserve_table_data_div_span_class_list[0]
-        # scheduleSite span class is only provided if request has multiple locations
-        if len(locations) == 1:
-          class_details.location = locations[0]
-        elif reserve_table_data_div_span_class == 'scheduleSite':
-          location_str = str(reserve_table_data_div_span.contents[0].strip())
-          class_details.location = LOCATION_STR_MAP[location_str]
-
-        if reserve_table_data_div_span_class == 'scheduleClass':
-          class_details.name = str(reserve_table_data_div_span.contents[0].strip())
-        elif reserve_table_data_div_span_class == 'scheduleInstruc':
-          class_details.instructor = str(reserve_table_data_div_span.contents[0].strip())
-        elif reserve_table_data_div_span_class == 'scheduleTime':
-          if len(class_details.name) == 0:
-            continue
-
-          class_details.set_time(str(reserve_table_data_div_span.contents[0].strip()))
-          class_details.studio = StudioType.AbsoluteSpin if 'CYCLE' in class_details.name else StudioType.AbsolutePilates
-          result_dict[current_date].append(copy(class_details))
-
-    if len(result_dict[current_date]) == 0:
-      result_dict.pop(current_date)
+      if current_date not in result_dict:
+        result_dict[current_date] = [copy(class_details)]
+      else:
+        result_dict[current_date].append(copy(class_details))
 
   return result_dict
 
 def get_absolute_schedule() -> ResultData:
   def _get_absolute_schedule_internal(output_result: ResultData, locations: list[StudioLocation]) -> dict[datetime.date, list[ClassData]]:
     # REST API can only select one week at a time
-    # Absolute schedule only shows up to 2 weeks in advance
+    # Absolute schedule only shows up to 1.5 weeks in advance
     for week in range(0, 2):
       get_schedule_response = send_get_schedule_request(locations=locations, week=week)
       date_class_data_list_dict = parse_get_schedule_response(response=get_schedule_response, locations=locations, week=week)
@@ -125,36 +136,42 @@ def get_absolute_schedule() -> ResultData:
 def get_instructorid_map() -> dict[str, int]:
   def _get_instructorid_map_internal(response: requests.models.Response) -> dict[str, int]:
     soup = BeautifulSoup(response.text, 'html.parser')
-    reserve_filters_list = [list_item for list_item in soup.find_all('ul') if list_item.get('id') == 'reserveFilter']
-    reserve_filters_list_len = len(reserve_filters_list)
-    if reserve_filters_list_len != 1:
-      global_variables.LOGGER.warning(f'Failed to get list of instructors - Expected 1 reserve filter list, got {reserve_filters_list_len} instead')
+    reserve_filter = soup.find('ul', id='reserveFilter')
+    if reserve_filter is None:
+      global_variables.LOGGER.warning(f'Failed to get list of instructors - Reserve filter not found: {soup}')
       return {}
 
-    reserve_filters = reserve_filters_list[0]
-    instructor_filter_list = [list_item for list_item in reserve_filters.find_all('li') if list_item.get('id') == 'reserveFilter1']
-    instructor_filter_list_len = len(instructor_filter_list)
-    if instructor_filter_list_len != 1:
-      global_variables.LOGGER.warning(f'Failed to get list of instructors - Expected 1 instructor filter list, got {instructor_filter_list_len} instead')
+    instructor_filter = reserve_filter.find('li', id='reserveFilter1')
+    if instructor_filter is None:
+      global_variables.LOGGER.warning(f'Failed to get list of instructors - Instructor filter not found: {reserve_filter}')
       return {}
 
     instructorid_map = {}
-    instructorid_prefix = 'instructorid='
-    instructorid_prefix_len = len(instructorid_prefix)
-    instructorid_len = 19
-    for instructor in instructor_filter_list[0].find_all('li'):
+    for instructor in instructor_filter.find_all('li'):
       instructor_name = instructor.string
-      link = instructor.a.get('href')
-      start_pos = link.find('instructorid=')
-      instructorid = link[start_pos + instructorid_prefix_len:start_pos + instructorid_prefix_len + instructorid_len]
-      instructorid_map[instructor_name.lower()] = instructorid
+      if instructor.a is None:
+        global_variables.LOGGER.warning(f'Failed to get id of instructor {instructor_name} - A tag is null: {instructor}')
+        continue
+
+      href = instructor.a.get('href')
+      if href is None:
+        global_variables.LOGGER.warning(f'Failed to get id of instructor {instructor_name} - Href is null: {instructor.a}')
+        continue
+
+      match = re.search(r'instructorid=(\d+)', href)
+      if match is None:
+        global_variables.LOGGER.warning(f'Failed to get id of instructor {instructor_name} - Regex failed to match: {href}')
+        continue
+
+      instructorid_map[instructor_name.lower()] = match.group(1)
+
     return instructorid_map
 
   instructorid_map = {}
   location_map_list = list(LOCATION_MAP)
 
   # REST API can only select one week at a time
-  # Absolute schedule only shows up to 2 weeks in advance
+  # Absolute schedule only shows up to 1.5 weeks in advance
   for week in range(0, 2):
     get_schedule_response = send_get_schedule_request(locations=location_map_list[0:1], week=week)
     current_instructorid_map = _get_instructorid_map_internal(response=get_schedule_response)
