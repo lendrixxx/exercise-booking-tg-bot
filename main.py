@@ -19,7 +19,6 @@ from barrys.barrys import get_barrys_schedule_and_instructorid_map
 from common.data_types import ResultData, StudioLocation
 from rev.rev import get_rev_schedule
 from rev.rev import get_instructorid_map as get_rev_instructorid_map
-from datetime import datetime, timedelta
 from rev.rev import get_rev_schedule_and_instructorid_map
 from flask import Flask
 
@@ -95,14 +94,11 @@ def update_cached_result_data() -> None:
     global_variables.LOGGER.info('Successfully updated cached result data!')
 
 def schedule_update_cached_result_data(stop_event) -> None:
-  current_time = datetime.strptime('00:00', '%H:%M')
-  while current_time.strftime('%H:%M') < '23:59':
-    schedule.every().day.at(current_time.strftime('%H:%M'), 'Asia/Singapore').do(update_cached_result_data)
-    current_time += timedelta(minutes=10)
+    schedule.every(10).minutes.do(update_cached_result_data)
 
-  while not stop_event.is_set():
-    schedule.run_pending()
-    time.sleep(1)
+    while not stop_event.is_set():
+        schedule.run_pending()
+        time.sleep(1)
 
 def start_bot_polling():
     global_variables.BOT.infinity_polling()
