@@ -23,6 +23,13 @@ from barrys.barrys import get_instructorid_map as get_barrys_instructorid_map
 from common.data_types import ResultData, StudioLocation
 from rev.rev import get_rev_schedule
 from rev.rev import get_instructorid_map as get_rev_instructorid_map
+from flask import Flask
+
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "Dummy Server is running"
 
 @global_variables.BOT.message_handler(commands=['start'])
 def start_handler(message: telebot.types.Message) -> None:
@@ -107,6 +114,11 @@ if __name__ =="__main__":
   stop_event = threading.Event()
   update_schedule_thread = threading.Thread(target=schedule_update_cached_result_data, args=[stop_event])
   update_schedule_thread.start()
+
+  # Start the Flask app in a separate thread
+  flask_thread = threading.Thread(target=lambda: app.run(host='0.0.0.0', port=5000))
+  flask_thread.daemon = True  # This allows the thread to exit when the main program ends
+  flask_thread.start()
 
   # Get current schedule and store in cache
   global_variables.LOGGER.info('Starting bot...')
