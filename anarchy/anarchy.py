@@ -95,48 +95,62 @@ def get_anarchy_schedule() -> ResultData:
   end_date = start_date + timedelta(weeks=3) # Anarchy schedule only shows up to 3 weeks in advance
   get_schedule_response = send_get_schedule_request(start_date=start_date, end_date=end_date)
   date_class_data_list_dict = parse_get_schedule_response(response=get_schedule_response)
+  if len(date_class_data_list_dict) == 0:
+    # Anarchy schedule doesn't show for future dates if there are no more classes today
+    start_date = start_date + timedelta(days=1)
+    get_schedule_response = send_get_schedule_request(start_date=start_date, end_date=end_date)
+    date_class_data_list_dict = parse_get_schedule_response(response=get_schedule_response)
   result.add_classes(date_class_data_list_dict)
   return result
 
 def get_instructorid_map() -> dict[str, int]:
-  instructorid_map = {}
+  def _get_instructorid_map_internal(response: requests.models.Response) -> dict[str, int]:
+    match = re.search(r'^\w+\((.*)\);?$', get_schedule_response.text, re.DOTALL)
+    if match:
+      try:
+        json_str = match.group(1)
+        data = json.loads(json_str)
+      except Exception as e:
+        global_variables.LOGGER.warning(f'Failed to parse response to json {get_schedule_response.text} - {e}')
+        return {}
+    else:
+      global_variables.LOGGER.warning(f'Failed to parse response {get_schedule_response.text}')
+      return {}
+
+    try:
+      cleaned_html = unescape(data['class_sessions'])
+    except Exception as e:
+      global_variables.LOGGER.warning(f'Failed to parse html from response {data} - {e}')
+      return {}
+
+    soup = BeautifulSoup(cleaned_html, 'html.parser')
+    session_div_list = [div for div in soup.find_all('div') if 'bw-session' in div.get('class', [])]
+    instructorid_map = {}
+    for session_div in session_div_list:
+      session_staff_div = session_div.find('div', class_='bw-session__staff')
+      if session_staff_div is None:
+        global_variables.LOGGER.warning(f'Failed to get session instructor: {session_div}')
+        continue
+
+      instructor_name = ' '.join(session_staff_div.get_text().strip().lower().split())
+      instructor_name = instructor_name.replace('\n', ' ')
+      instructor_id = session_div.get('data-bw-widget-trainer')
+      if instructor_id is None:
+        global_variables.LOGGER.warning(f'Failed to get instructor id of instructor {instructor_name}: {session_div}')
+        continue
+
+      instructorid_map[instructor_name] = instructor_id
+
+    return instructorid_map
+
   start_date = datetime.now().date()
   end_date = start_date + timedelta(weeks=3) # Anarchy schedule only shows up to 3 weeks in advance
   get_schedule_response = send_get_schedule_request(start_date=start_date, end_date=end_date)
-  match = re.search(r'^\w+\((.*)\);?$', get_schedule_response.text, re.DOTALL)
-  if match:
-    try:
-      json_str = match.group(1)
-      data = json.loads(json_str)
-    except Exception as e:
-      global_variables.LOGGER.warning(f'Failed to parse response to json {get_schedule_response.text} - {e}')
-      return {}
-  else:
-    global_variables.LOGGER.warning(f'Failed to parse response {get_schedule_response.text}')
-    return {}
-
-  try:
-    cleaned_html = unescape(data['class_sessions'])
-  except Exception as e:
-    global_variables.LOGGER.warning(f'Failed to parse html from response {data} - {e}')
-    return {}
-
-  soup = BeautifulSoup(cleaned_html, 'html.parser')
-  session_div_list = [div for div in soup.find_all('div') if 'bw-session' in div.get('class', [])]
-  instructorid_map = {}
-  for session_div in session_div_list:
-    session_staff_div = session_div.find('div', class_='bw-session__staff')
-    if session_staff_div is None:
-      global_variables.LOGGER.warning(f'Failed to get session instructor: {session_div}')
-      continue
-
-    instructor_name = ' '.join(session_staff_div.get_text().strip().lower().split())
-    instructor_name = instructor_name.replace('\n', ' ')
-    instructor_id = session_div.get('data-bw-widget-trainer')
-    if instructor_id is None:
-      global_variables.LOGGER.warning(f'Failed to get instructor id of instructor {instructor_name}: {session_div}')
-      continue
-
-    instructorid_map[instructor_name] = instructor_id
+  instructorid_map = _get_instructorid_map_internal(response=get_schedule_response)
+  if len(instructorid_map) == 0:
+    # Anarchy schedule doesn't show for future dates if there are no more classes today
+    start_date = start_date + timedelta(days=1)
+    get_schedule_response = send_get_schedule_request(start_date=start_date, end_date=end_date)
+    instructorid_map = _get_instructorid_map_internal(response=get_schedule_response)
 
   return instructorid_map
