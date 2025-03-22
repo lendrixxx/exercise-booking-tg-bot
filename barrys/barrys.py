@@ -13,8 +13,7 @@ def send_get_schedule_request(week: int) -> requests.models.Response:
   params = {'wk': max(0, min(week, 2)), 'site': 1, 'site2': 12}
   return requests.get(url=url, params=params)
 
-def parse_get_schedule_response(response: requests.models.Response, week: int) -> dict[datetime.date, list[ClassData]]:
-  soup = BeautifulSoup(response.text, 'html.parser')
+def get_schedule_from_response_soup(soup: BeautifulSoup, week: int) -> dict[datetime.date, list[ClassData]]:
   reserve_list_div = soup.find('div', class_='tab-content reservelist')
   if reserve_list_div is None:
     global_variables.LOGGER.warning(f'Failed to get schedule - Reserve list not found: {soup}')
@@ -90,56 +89,54 @@ def parse_get_schedule_response(response: requests.models.Response, week: int) -
 
   return result_dict
 
-def get_barrys_schedule() -> ResultData:
+def get_instructorid_map_from_response_soup(soup: BeautifulSoup) -> dict[str, int]:
+  reserve_filter = soup.find('ul', id='reserveFilter')
+  if reserve_filter is None:
+    global_variables.LOGGER.warning(f'Failed to get list of instructors - Reserve filter not found: {soup}')
+    return {}
+
+  instructor_filter = reserve_filter.find('li', id='reserveFilter1')
+  if instructor_filter is None:
+    global_variables.LOGGER.warning(f'Failed to get list of instructors - Instructor filter not found: {reserve_filter}')
+    return {}
+
+  instructorid_map = {}
+  for instructor in instructor_filter.find_all('li'):
+    instructor_name = instructor.string
+    if instructor.a is None:
+      global_variables.LOGGER.warning(f'Failed to get id of instructor {instructor_name} - A tag is null: {instructor}')
+      continue
+
+    href = instructor.a.get('href')
+    if href is None:
+      global_variables.LOGGER.warning(f'Failed to get id of instructor {instructor_name} - Href is null: {instructor.a}')
+      continue
+
+    match = re.search(r'instructorid=(\d+)', href)
+    if match is None:
+      global_variables.LOGGER.warning(f'Failed to get id of instructor {instructor_name} - Regex failed to match: {href}')
+      continue
+
+    instructorid_map[instructor_name.lower()] = match.group(1)
+
+  return instructorid_map
+
+def get_barrys_schedule_and_instructorid_map() -> tuple[ResultData, dict[str, int]]:
   result = ResultData()
+  instructorid_map = {}
+
   # REST API can only select one week at a time
   # Barrys schedule only shows up to 3 weeks in advance
   for week in range(0, 3):
     get_schedule_response = send_get_schedule_request(week=week)
-    date_class_data_list_dict = parse_get_schedule_response(response=get_schedule_response, week=week)
+    soup = BeautifulSoup(get_schedule_response.text, 'html.parser')
+
+    # Get schedule
+    date_class_data_list_dict = get_schedule_from_response_soup(soup=soup, week=week)
     result.add_classes(date_class_data_list_dict)
 
-  return result
-
-def get_instructorid_map() -> dict[str, int]:
-  def _get_instructorid_map_internal(response: requests.models.Response) -> dict[str, int]:
-    soup = BeautifulSoup(response.text, 'html.parser')
-    reserve_filter = soup.find('ul', id='reserveFilter')
-    if reserve_filter is None:
-      global_variables.LOGGER.warning(f'Failed to get list of instructors - Reserve filter not found: {soup}')
-      return {}
-
-    instructor_filter = reserve_filter.find('li', id='reserveFilter1')
-    if instructor_filter is None:
-      global_variables.LOGGER.warning(f'Failed to get list of instructors - Instructor filter not found: {reserve_filter}')
-      return {}
-
-    instructorid_map = {}
-    for instructor in instructor_filter.find_all('li'):
-      instructor_name = instructor.string
-      if instructor.a is None:
-        global_variables.LOGGER.warning(f'Failed to get id of instructor {instructor_name} - A tag is null: {instructor}')
-        continue
-
-      href = instructor.a.get('href')
-      if href is None:
-        global_variables.LOGGER.warning(f'Failed to get id of instructor {instructor_name} - Href is null: {instructor.a}')
-        continue
-
-      match = re.search(r'instructorid=(\d+)', href)
-      if match is None:
-        global_variables.LOGGER.warning(f'Failed to get id of instructor {instructor_name} - Regex failed to match: {href}')
-        continue
-
-      instructorid_map[instructor_name.lower()] = match.group(1)
-
-    return instructorid_map
-
-  # REST API can only select one week at a time
-  instructorid_map = {}
-  for week in range(0, 3):
-    get_schedule_response = send_get_schedule_request(week=week)
-    current_instructorid_map = _get_instructorid_map_internal(response=get_schedule_response)
+    # Get instructor id map
+    current_instructorid_map = get_instructorid_map_from_response_soup(soup=soup)
     instructorid_map = {**instructorid_map, **current_instructorid_map}
 
-  return instructorid_map
+  return result, instructorid_map
