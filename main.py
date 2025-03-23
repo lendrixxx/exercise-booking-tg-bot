@@ -12,7 +12,6 @@ import telebot
 import time
 import threading
 import schedule
-import requests
 from absolute.absolute import get_absolute_schedule_and_instructorid_map
 from ally.ally import get_ally_schedule_and_instructorid_map
 from anarchy.anarchy import get_anarchy_schedule_and_instructorid_map
@@ -21,17 +20,7 @@ from common.data_types import ResultData, StudioLocation
 from rev.rev import get_rev_schedule
 from rev.rev import get_instructorid_map as get_rev_instructorid_map
 from rev.rev import get_rev_schedule_and_instructorid_map
-from flask import Flask
-
-app = Flask(__name__)
-
-@app.route('/')
-def home():
-  return "Dummy Server is running"
-
-@app.route("/health", methods=["GET"])
-def health_check():
-  return "OK", 200  
+from server import start_server, ping_dummy_server
 
 @global_variables.BOT.message_handler(commands=['start'])
 def start_handler(message: telebot.types.Message) -> None:
@@ -93,17 +82,6 @@ def update_cached_result_data() -> None:
   global_variables.CACHED_RESULT_DATA = updated_cached_result_data
   global_variables.LOGGER.info('Successfully updated cached result data!')
 
-def ping_dummy_server():
-  DUMMY_SERVER_URL = "https://exercise-booking-tg-bot.onrender.com/health"  
-  try:
-    response = requests.get(DUMMY_SERVER_URL)
-    if response.status_code == 200:
-      global_variables.LOGGER.info("Successfully pinged the dummy server.")
-    else:
-      global_variables.LOGGER.warning(f"Unexpected response from server: {response.status_code}")
-  except requests.exceptions.RequestException as e:
-    global_variables.LOGGER.error(f"Failed to reach dummy server: {e}")
-
 def schedule_update_cached_result_data(stop_event) -> None:
   schedule.every(10).minutes.do(update_cached_result_data)
   schedule.every(10).minutes.do(ping_dummy_server) 
@@ -119,7 +97,7 @@ if __name__ == "__main__":
   # Load existing history
   global_variables.HISTORY_HANDLER.start()
 
-  # Create a stop event for graceful shutdown
+  # Create threads
   stop_event = threading.Event()
 
   # Thread for scheduled updates and server pings
@@ -127,7 +105,7 @@ if __name__ == "__main__":
   update_schedule_thread.start()
 
   # Start the Flask app in a separate thread
-  flask_thread = threading.Thread(target=lambda: app.run(host='0.0.0.0', port=5000))
+  flask_thread = threading.Thread(target=start_server)
   flask_thread.daemon = True  # This allows the thread to exit when the main program ends
   flask_thread.start()
 
@@ -143,6 +121,6 @@ if __name__ == "__main__":
   # Wait for bot to handle messages
   bot_polling_thread.join()
 
-  # Stop threads gracefully
+  # Stop threads
   stop_event.set()
   update_schedule_thread.join()
