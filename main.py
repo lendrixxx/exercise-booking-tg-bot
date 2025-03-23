@@ -17,8 +17,8 @@ from ally.ally import get_ally_schedule_and_instructorid_map
 from anarchy.anarchy import get_anarchy_schedule_and_instructorid_map
 from barrys.barrys import get_barrys_schedule_and_instructorid_map
 from common.data_types import ResultData, StudioLocation
-from datetime import datetime, timedelta
 from rev.rev import get_rev_schedule_and_instructorid_map
+from server import start_server, ping_dummy_server
 
 @global_variables.BOT.message_handler(commands=['start'])
 def start_handler(message: telebot.types.Message) -> None:
@@ -61,52 +61,63 @@ def update_cached_result_data() -> None:
   global_variables.LOGGER.info('Updating cached result data...')
   updated_cached_result_data = ResultData()
   mutex = threading.Lock()
-  absolute_thread = threading.Thread(target=_get_absolute_schedule, name='absolute_thread', args=(mutex, updated_cached_result_data,))
-  ally_thread = threading.Thread(target=_get_ally_schedule, name='ally_thread', args=(mutex, updated_cached_result_data,))
-  anarchy_thread = threading.Thread(target=_get_anarchy_schedule, name='anarchy_thread', args=(mutex, updated_cached_result_data,))
-  barrys_thread = threading.Thread(target=_get_barrys_schedule, name='barrys_thread', args=(mutex, updated_cached_result_data,))
-  rev_thread = threading.Thread(target=_get_rev_schedule, name='rev_thread', args=(mutex, updated_cached_result_data,))
 
-  absolute_thread.start()
-  ally_thread.start()
-  anarchy_thread.start()
-  barrys_thread.start()
-  rev_thread.start()
-  absolute_thread.join()
-  ally_thread.join()
-  anarchy_thread.join()
-  barrys_thread.join()
-  rev_thread.join()
+  threads = []
+  for func, name in [
+    (_get_absolute_schedule, 'absolute_thread'),
+    (_get_ally_schedule, 'ally_thread'),
+    (_get_anarchy_schedule, 'anarchy_thread'),
+    (_get_barrys_schedule, 'barrys_thread'),
+    (_get_rev_schedule, 'rev_thread')
+  ]:
+    thread = threading.Thread(target=func, name=name, args=(mutex, updated_cached_result_data,))
+    threads.append(thread)
+    thread.start()
+
+  for thread in threads:
+    thread.join()
 
   global_variables.CACHED_RESULT_DATA = updated_cached_result_data
   global_variables.LOGGER.info('Successfully updated cached result data!')
 
 def schedule_update_cached_result_data(stop_event) -> None:
-  current_time = datetime.strptime('00:00', '%H:%M')
-  while current_time.strftime('%H:%M') < '23:59':
-    schedule.every().day.at(current_time.strftime('%H:%M'), 'Asia/Singapore').do(update_cached_result_data)
-    current_time += timedelta(minutes=10)
+  schedule.every(10).minutes.do(update_cached_result_data)
+  schedule.every(10).minutes.do(ping_dummy_server) 
 
   while not stop_event.is_set():
     schedule.run_pending()
     time.sleep(1)
 
-if __name__ =="__main__":
+def start_bot_polling():
+  global_variables.BOT.infinity_polling()
+
+if __name__ == "__main__":
   # Load existing history
   global_variables.HISTORY_HANDLER.start()
 
   # Create threads
   stop_event = threading.Event()
+
+  # Thread for scheduled updates and server pings
   update_schedule_thread = threading.Thread(target=schedule_update_cached_result_data, args=[stop_event])
   update_schedule_thread.start()
+
+  # Start the Flask app in a separate thread
+  flask_thread = threading.Thread(target=start_server)
+  flask_thread.daemon = True  # This allows the thread to exit when the main program ends
+  flask_thread.start()
 
   # Get current schedule and store in cache
   global_variables.LOGGER.info('Starting bot...')
   update_cached_result_data()
   global_variables.LOGGER.info('Bot started!')
 
-  # Start bot
-  global_variables.BOT.infinity_polling()
+  # Start bot polling in a separate thread
+  bot_polling_thread = threading.Thread(target=start_bot_polling, daemon=True)
+  bot_polling_thread.start()
+
+  # Wait for bot to handle messages
+  bot_polling_thread.join()
 
   # Stop threads
   stop_event.set()
