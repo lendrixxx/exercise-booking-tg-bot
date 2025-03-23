@@ -12,9 +12,11 @@ from rev.data import ROOM_NAME_TO_STUDIO_LOCATION_MAP, SITE_ID_MAP
 
 SECURITY_TOKEN = os.environ.get('BOOKING_BOT_REV_SECURITY_TOKEN')
 
-def send_get_schedule_request(location: StudioLocation, start_date: str, end_date: str) -> requests.models.Response:
+def send_get_schedule_request(location: StudioLocation, start_date: datetime.date, end_date: datetime) -> requests.models.Response:
+  start_date_str = datetime.strftime(start_date,'%Y-%m-%d')
+  end_date_str = datetime.strftime(end_date,'%Y-%m-%d')
   url = 'https://widgetapi.hapana.com/v2/wAPI/site/sessions?sessionCategory=classes'
-  params = {'siteID': SITE_ID_MAP[location], 'startDate': start_date, 'endDate': end_date}
+  params = {'siteID': SITE_ID_MAP[location], 'startDate': start_date_str, 'endDate': end_date_str}
   headers = {
     'Content-Type': 'application/json',
     'Securitytoken': SECURITY_TOKEN,
