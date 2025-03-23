@@ -32,8 +32,8 @@ def parse_get_schedule_response(response: requests.models.Response) -> dict[date
   result_dict = {}
   try:
     response_json = json.loads(response.text)
-    if response_json['success'] == False:
-      global_variables.LOGGER.warning(f'Failed to get schedule - API callback failed')
+    if 'success' not in response_json:
+      global_variables.LOGGER.warning(f'Failed to get schedule - API callback failed: {response_json}')
       return {}
   except Exception as e:
     global_variables.LOGGER.warning(f'Failed to get schedule - {e}: {response.text}')
