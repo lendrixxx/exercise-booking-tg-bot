@@ -17,8 +17,6 @@ from ally.ally import get_ally_schedule_and_instructorid_map
 from anarchy.anarchy import get_anarchy_schedule_and_instructorid_map
 from barrys.barrys import get_barrys_schedule_and_instructorid_map
 from common.data_types import ResultData, StudioLocation
-from rev.rev import get_rev_schedule
-from rev.rev import get_instructorid_map as get_rev_instructorid_map
 from rev.rev import get_rev_schedule_and_instructorid_map
 from server import start_server, ping_dummy_server
 
