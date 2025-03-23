@@ -34,7 +34,7 @@ def get_schedule_from_response_soup(soup: BeautifulSoup, locations: list[StudioL
     return {}
 
   if schedule_table.tbody is None:
-    global_variables.LOGGER.warning(f'Failed to get schedule - Schedule table tbody not found: {schedule_table}')
+    # No classes for the week
     return {}
 
   schedule_table_row = schedule_table.tbody.find('tr')
@@ -118,7 +118,7 @@ def get_schedule_from_response_soup(soup: BeautifulSoup, locations: list[StudioL
 def get_instructorid_map_from_response_soup(soup: BeautifulSoup) -> dict[str, int]:
   reserve_filter = soup.find('ul', id='reserveFilter')
   if reserve_filter is None:
-    global_variables.LOGGER.warning(f'Failed to get list of instructors - Reserve filter not found: {soup}')
+    # No classes for the week so there is no instructor filter as well
     return {}
 
   instructor_filter = reserve_filter.find('li', id='reserveFilter1')
