@@ -1,4 +1,4 @@
-# Exercise Studio Telegram Booking Bot
+Telegram bot link [@studios_schedule_checker_bot](https://t.me/studios_schedule_checker_bot) ![Uptime Status](https://img.shields.io/uptimerobot/status/m798833895-8d770d3a02f7cd0eae64a49b)
 
 ## Overview
 
