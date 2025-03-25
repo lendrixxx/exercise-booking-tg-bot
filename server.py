@@ -1,6 +1,7 @@
 from flask import Flask
 import requests
 import global_variables
+import os
 
 app = Flask(__name__)
 
@@ -13,7 +14,7 @@ def health_check():
   return 'OK', 200  
 
 def ping_dummy_server():
-  DUMMY_SERVER_URL = f'{os.getenv('RENDER_EXTERNAL_URL', 'http://localhost:5000')}/health'
+  DUMMY_SERVER_URL = f'{os.getenv("RENDER_EXTERNAL_URL", "http://localhost:5000")}/health'
   try:
     response = requests.get(DUMMY_SERVER_URL)
     if response.status_code == 200:
