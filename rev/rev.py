@@ -66,7 +66,7 @@ def parse_get_schedule_response(response: requests.models.Response) -> dict[date
         location=location,
         name=class_name,
         instructor=instructor_str,
-        time=datetime.strftime(class_time, "%I:%M %p"),
+        time=datetime.strftime(class_time, "%I:%M %p").lstrip("0"),
         availability=RESPONSE_AVAILABILITY_MAP[data["sessionStatus"]],
         capacity_info=CapacityInfo(
           has_info=True,

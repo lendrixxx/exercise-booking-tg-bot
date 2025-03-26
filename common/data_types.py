@@ -81,10 +81,6 @@ class ClassData:
     self.availability = availability
     self.capacity_info = capacity_info
 
-  def set_time(self, time:str):
-    last_pos = time.find("M") + 1
-    self.time = time[:last_pos]
-
   def __eq__(self, other: "ClassData") -> bool:
     return self.studio == other.studio and self.location == other.location and self.name == other.name and self.instructor == other.instructor and self.time == other.time
 
