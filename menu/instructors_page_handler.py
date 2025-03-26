@@ -1,6 +1,7 @@
 import global_variables
 import telebot
 import time
+from common.data_types import StudioType
 from menu.main_page_handler import main_page_handler
 
 @global_variables.BOT.message_handler(commands=["instructors"])
@@ -22,17 +23,17 @@ def instructors_selection_callback_query_handler(query: telebot.types.CallbackQu
 def show_instructors_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
   query_data = global_variables.USER_MANAGER.get_query_data(query.from_user.id, query.message.chat.id)
   text = ""
-  if "Rev" in query_data.studios:
+  if StudioType.Rev in query_data.studios:
     text += "*Rev Instructors:* " + ", ".join(global_variables.REV_INSTRUCTOR_NAMES) + "\n\n"
-  if "Barrys" in query_data.studios:
+  if StudioType.Barrys in query_data.studios:
     text += "*Barrys Instructors:* " + ", ".join(global_variables.BARRYS_INSTRUCTOR_NAMES) + "\n\n"
-  if "Absolute (Spin)" in query_data.studios or "Absolute (Pilates)" in query_data.studios:
+  if StudioType.AbsoluteSpin in query_data.studios or StudioType.AbsolutePilates in query_data.studios:
     text += "*Absolute Instructors:* " + ", ".join(global_variables.ABSOLUTE_INSTRUCTOR_NAMES) + "\n\n"
-  if "Ally (Spin)" in query_data.studios or "Ally (Pilates)" in query_data.studios:
+  if StudioType.AllySpin in query_data.studios or StudioType.AllyPilates in query_data.studios:
     text += "*Ally Instructors:* " + ", ".join(global_variables.ALLY_INSTRUCTOR_NAMES) + "\n\n"
-  if "Ally (Recovery)" in query_data.studios:
+  if StudioType.AllyRecovery in query_data.studios:
     text += "No instructors for Ally (Recovery)" + "\n\n"
-  if "Anarchy" in query_data.studios:
+  if StudioType.Anarchy in query_data.studios:
     text += "*Anarchy Instructors:* " + ", ".join(global_variables.ANARCHY_INSTRUCTOR_NAMES) + "\n\n"
 
   sent_msg = global_variables.BOT.send_message(query.message.chat.id, text, parse_mode="Markdown")
@@ -132,25 +133,25 @@ def instructors_selection_handler(user_id: int, message: telebot.types.Message) 
   text += query_data.get_query_str(include_instructors=True)
 
   keyboard = telebot.types.InlineKeyboardMarkup()
-  if "Rev" in query_data.studios:
+  if StudioType.Rev in query_data.studios:
     rev_instructors_button = telebot.types.InlineKeyboardButton("Enter Rev Instructor(s)", callback_data="{'step': 'rev-instructors'}")
     keyboard.add(rev_instructors_button)
-  if "Barrys" in query_data.studios:
+  if StudioType.Barrys in query_data.studios:
     barrys_instructors_button = telebot.types.InlineKeyboardButton("Enter Barrys Instructor(s)", callback_data="{'step': 'barrys-instructors'}")
     keyboard.add(barrys_instructors_button)
-  if "Absolute (Spin)" in query_data.studios:
+  if StudioType.AbsoluteSpin in query_data.studios:
     absolute_spin_instructors_button = telebot.types.InlineKeyboardButton("Enter Absolute (Spin) Instructor(s)", callback_data="{'step': 'absolute-spin-instructors'}")
     keyboard.add(absolute_spin_instructors_button)
-  if "Absolute (Pilates)" in query_data.studios:
+  if StudioType.AbsolutePilates in query_data.studios:
     absolute_pilates_instructors_button = telebot.types.InlineKeyboardButton("Enter Absolute (Pilates) Instructor(s)", callback_data="{'step': 'absolute-pilates-instructors'}")
     keyboard.add(absolute_pilates_instructors_button)
-  if "Ally (Spin)" in query_data.studios:
+  if StudioType.AllySpin in query_data.studios:
     ally_spin_instructors_button = telebot.types.InlineKeyboardButton("Enter Ally (Spin) Instructor(s)", callback_data="{'step': 'ally-spin-instructors'}")
     keyboard.add(ally_spin_instructors_button)
-  if "Ally (Pilates)" in query_data.studios:
+  if StudioType.AllyPilates in query_data.studios:
     ally_pilates_instructors_button = telebot.types.InlineKeyboardButton("Enter Ally (Pilates) Instructor(s)", callback_data="{'step': 'ally-pilates-instructors'}")
     keyboard.add(ally_pilates_instructors_button)
-  if "Anarchy" in query_data.studios:
+  if StudioType.Anarchy in query_data.studios:
     anarchy_instructors_button = telebot.types.InlineKeyboardButton("Enter Anarchy Instructor(s)", callback_data="{'step': 'anarchy-instructors'}")
     keyboard.add(anarchy_instructors_button)
 

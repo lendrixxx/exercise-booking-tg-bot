@@ -101,7 +101,7 @@ class StudioData:
 
 
 class QueryData:
-  def __init__(self, studios: dict[str, StudioData], current_studio: StudioType, weeks: int, days: list[str], start_times: list[tuple[datetime.date, datetime.date]], class_name_filter: str):
+  def __init__(self, studios: dict[StudioType, StudioData], current_studio: StudioType, weeks: int, days: list[str], start_times: list[tuple[datetime.date, datetime.date]], class_name_filter: str):
     self.studios = {} if studios is None else copy(studios)
     self.current_studio = current_studio
     self.weeks = weeks
@@ -109,14 +109,14 @@ class QueryData:
     self.start_times = copy(start_times)
     self.class_name_filter = class_name_filter
 
-  def get_studio_locations(self, studio_name: str) -> list[StudioLocation]:
-    if studio_name not in self.studios:
+  def get_studio_locations(self, studio: StudioType) -> list[StudioLocation]:
+    if studio not in self.studios:
       return []
 
-    if self.studios[studio_name].locations is None:
+    if self.studios[studio].locations is None:
       return []
 
-    return self.studios[studio_name].locations
+    return self.studios[studio].locations
 
   def get_selected_studios_str(self) -> str:
     if len(self.studios) == 0:
@@ -124,7 +124,7 @@ class QueryData:
 
     studios_selected = ""
     for studio in self.studios:
-      studios_selected += f"{studio} - {', '.join(self.studios[studio].locations)}\n"
+      studios_selected += f"{studio.value} - {', '.join(self.studios[studio].locations)}\n"
     return studios_selected.rstrip()
 
   def get_selected_days_str(self) -> str:
@@ -158,7 +158,7 @@ class QueryData:
     instructors_selected = ""
     for studio in self.studios:
       INSTRUCTOR_NAMES = ", ".join(self.studios[studio].instructors)
-      instructors_selected += f"{studio}: {INSTRUCTOR_NAMES if len(INSTRUCTOR_NAMES) > 0 else 'None'}\n"
+      instructors_selected += f"{studio.value}: {INSTRUCTOR_NAMES if len(INSTRUCTOR_NAMES) > 0 else 'None'}\n"
     return instructors_selected.rstrip()
 
   def get_query_str(self, include_studio: bool=False, include_instructors: bool=False, include_weeks: bool=False, include_days: bool=False, include_time: bool=False, include_class_name_filter: bool=False) -> str:

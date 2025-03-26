@@ -125,14 +125,14 @@ class UserManager:
 
   def update_query_data_select_all_studios(self, user_id, chat_id):
     self.user_query_data[(user_id, chat_id)].studios = {
-      "Rev": StudioData(locations=STUDIO_LOCATIONS_MAP[StudioType.Rev]),
-      "Barrys": StudioData(locations=STUDIO_LOCATIONS_MAP[StudioType.Barrys]),
-      "Absolute (Spin)": StudioData(locations=STUDIO_LOCATIONS_MAP[StudioType.AbsoluteSpin]),
-      "Absolute (Pilates)": StudioData(locations=STUDIO_LOCATIONS_MAP[StudioType.AbsolutePilates]),
-      "Ally (Spin)": StudioData(locations=STUDIO_LOCATIONS_MAP[StudioType.AllySpin]),
-      "Ally (Pilates)": StudioData(locations=STUDIO_LOCATIONS_MAP[StudioType.AllyPilates]),
-      "Ally (Recovery)": StudioData(locations=STUDIO_LOCATIONS_MAP[StudioType.AllyRecovery]),
-      "Anarchy": StudioData(locations=STUDIO_LOCATIONS_MAP[StudioType.Anarchy]),
+      StudioType.Rev : StudioData(locations=STUDIO_LOCATIONS_MAP[StudioType.Rev]),
+      StudioType.Barrys : StudioData(locations=STUDIO_LOCATIONS_MAP[StudioType.Barrys]),
+      StudioType.AbsoluteSpin : StudioData(locations=STUDIO_LOCATIONS_MAP[StudioType.AbsoluteSpin]),
+      StudioType.AbsolutePilates : StudioData(locations=STUDIO_LOCATIONS_MAP[StudioType.AbsolutePilates]),
+      StudioType.AllySpin : StudioData(locations=STUDIO_LOCATIONS_MAP[StudioType.AllySpin]),
+      StudioType.AllyPilates : StudioData(locations=STUDIO_LOCATIONS_MAP[StudioType.AllyPilates]),
+      StudioType.AllyRecovery : StudioData(locations=STUDIO_LOCATIONS_MAP[StudioType.AllyRecovery]),
+      StudioType.Anarchy : StudioData(locations=STUDIO_LOCATIONS_MAP[StudioType.Anarchy]),
     }
 
   def update_query_data_days(self, user_id, chat_id, days):
