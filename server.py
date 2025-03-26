@@ -1,9 +1,13 @@
 from flask import Flask
-import requests
+import logging
 import global_variables
 import os
+import requests
 
 app = Flask(__name__)
+
+logger = logging.getLogger('werkzeug')
+logger.setLevel(logging.WARNING)
 
 @app.route('/')
 def home():
@@ -11,7 +15,7 @@ def home():
 
 @app.route('/health', methods=['GET'])
 def health_check():
-  return 'OK', 200  
+  return 'OK', 200
 
 def ping_dummy_server():
   DUMMY_SERVER_URL = f'{os.getenv("RENDER_EXTERNAL_URL", "http://localhost:5000")}/health'
