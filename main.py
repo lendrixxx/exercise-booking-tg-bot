@@ -30,31 +30,31 @@ def start_handler(message: telebot.types.Message) -> None:
 def update_cached_result_data() -> None:
   def _get_absolute_schedule(mutex, updated_cached_result_data):
     absolute_schedule, global_variables.ABSOLUTE_INSTRUCTORID_MAP = get_absolute_schedule_and_instructorid_map()
-    global_variables.ABSOLUTE_INSTRUCTOR_NAMES = [instructor.lower() for instructor in list(global_variables.ABSOLUTE_INSTRUCTORID_MAP)]
+    global_variables.ABSOLUTE_INSTRUCTOR_NAMES = sorted([instructor.lower() for instructor in list(global_variables.ABSOLUTE_INSTRUCTORID_MAP)])
     with mutex:
       updated_cached_result_data += absolute_schedule
 
   def _get_ally_schedule(mutex, updated_cached_result_data):
     ally_schedule, global_variables.ALLY_INSTRUCTORID_MAP = get_ally_schedule_and_instructorid_map()
-    global_variables.ALLY_INSTRUCTOR_NAMES = [instructor.lower() for instructor in list(global_variables.ALLY_INSTRUCTORID_MAP)]
+    global_variables.ALLY_INSTRUCTOR_NAMES = sorted([instructor.lower() for instructor in list(global_variables.ALLY_INSTRUCTORID_MAP)])
     with mutex:
       updated_cached_result_data += ally_schedule
 
   def _get_anarchy_schedule(mutex, updated_cached_result_data):
     anarchy_schedule, global_variables.ANARCHY_INSTRUCTORID_MAP = get_anarchy_schedule_and_instructorid_map()
-    global_variables.ANARCHY_INSTRUCTOR_NAMES = [instructor.lower() for instructor in list(global_variables.ANARCHY_INSTRUCTORID_MAP)]
+    global_variables.ANARCHY_INSTRUCTOR_NAMES = sorted([instructor.lower() for instructor in list(global_variables.ANARCHY_INSTRUCTORID_MAP)])
     with mutex:
       updated_cached_result_data += anarchy_schedule
 
   def _get_barrys_schedule(mutex, updated_cached_result_data):
     barrys_schedule, global_variables.BARRYS_INSTRUCTORID_MAP = get_barrys_schedule_and_instructorid_map()
-    global_variables.BARRYS_INSTRUCTOR_NAMES = [instructor.lower() for instructor in list(global_variables.BARRYS_INSTRUCTORID_MAP)]
+    global_variables.BARRYS_INSTRUCTOR_NAMES = sorted([instructor.lower() for instructor in list(global_variables.BARRYS_INSTRUCTORID_MAP)])
     with mutex:
       updated_cached_result_data += barrys_schedule
 
   def _get_rev_schedule(mutex, updated_cached_result_data):
     rev_schedule, global_variables.REV_INSTRUCTORID_MAP = get_rev_schedule_and_instructorid_map()
-    global_variables.REV_INSTRUCTOR_NAMES = [instructor.lower() for instructor in list(global_variables.REV_INSTRUCTORID_MAP)]
+    global_variables.REV_INSTRUCTOR_NAMES = sorted([instructor.lower() for instructor in list(global_variables.REV_INSTRUCTORID_MAP)])
     with mutex:
       updated_cached_result_data += rev_schedule
 
