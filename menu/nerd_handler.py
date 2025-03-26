@@ -17,7 +17,7 @@ def nerd_handler(message: telebot.types.Message) -> None:
          "(Repeat above for multiple studios)\n" \
          "Weeks\n" \
          "Days\n" \
-         "Timeslots (comma separated)\n" \
+         "Timeslots (comma separated. enter 'nil' to ignore filters)\n" \
          "Class Name Filter (enter 'nil' to ignore filters)\n" \
          "\n" \
          "*Studio names*: rev, barrys, absolute (spin), absolute (pilates), ally (spin), ally (pilates)\n" \
@@ -34,7 +34,7 @@ def nerd_handler(message: telebot.types.Message) -> None:
          "2\n" \
          "monday, wednesday, saturday\n" \
          "0700-0900, 1300-1500, 1800-2000\n" \
-         "nil\n`"
+         "essential\n`"
 
   sent_msg = global_variables.BOT.send_message(message.chat.id, text, parse_mode="Markdown")
   global_variables.BOT.register_next_step_handler(sent_msg, nerd_input_handler)
@@ -135,95 +135,96 @@ def nerd_input_handler(message: telebot.types.Message) -> None:
   # Get timeslots
   timeslots_without_whitespace = "".join(input_str_list[-2].split())
   timeslots = timeslots_without_whitespace.split(",")
-  for timeslot in timeslots:
-    timings = timeslot.split("-")
-    if len(timings) != 2:
-      global_variables.BOT.send_message(message.chat.id, f"Failed to handle query. Invalid input for 'timeslots'. '{timeslot}' is not a valid timeslot", parse_mode="Markdown")
-      return
+  if "nil" not in timeslots:
+    for timeslot in timeslots:
+      timings = timeslot.split("-")
+      if len(timings) != 2:
+        global_variables.BOT.send_message(message.chat.id, f"Failed to handle query. Invalid input for 'timeslots'. '{timeslot}' is not a valid timeslot", parse_mode="Markdown")
+        return
 
-    start_time_str = timings[0]
-    end_time_str = timings[1]
+      start_time_str = timings[0]
+      end_time_str = timings[1]
 
-    if len(start_time_str) != 4:
-      global_variables.BOT.send_message(message.chat.id, f"Failed to handle query. Invalid input for 'timeslots'. Start time '{start_time_str}' is not valid", parse_mode="Markdown")
-      return
+      if len(start_time_str) != 4:
+        global_variables.BOT.send_message(message.chat.id, f"Failed to handle query. Invalid input for 'timeslots'. Start time '{start_time_str}' is not valid", parse_mode="Markdown")
+        return
 
-    if len(end_time_str) != 4:
-      global_variables.BOT.send_message(message.chat.id, f"Failed to handle query. Invalid input for 'timeslots'. End time '{end_time_str}' is not valid", parse_mode="Markdown")
-      return
+      if len(end_time_str) != 4:
+        global_variables.BOT.send_message(message.chat.id, f"Failed to handle query. Invalid input for 'timeslots'. End time '{end_time_str}' is not valid", parse_mode="Markdown")
+        return
 
-    try:
-      start_time = datetime.strptime(start_time_str, "%H%M")
-    except Exception as e:
-      global_variables.LOGGER.warning(f"Invalid time '{start_time_str}' entered: {str(e)}")
-      text = f"Invalid time '{start_time_str}' entered. Please enter time in 24 hour format"
-      global_variables.BOT.send_message(message.chat.id, text, parse_mode="Markdown")
-      return
+      try:
+        start_time = datetime.strptime(start_time_str, "%H%M")
+      except Exception as e:
+        global_variables.LOGGER.warning(f"Invalid time '{start_time_str}' entered: {str(e)}")
+        text = f"Invalid time '{start_time_str}' entered. Please enter time in 24 hour format"
+        global_variables.BOT.send_message(message.chat.id, text, parse_mode="Markdown")
+        return
 
-    try:
-      end_time = datetime.strptime(end_time_str, "%H%M")
-    except Exception as e:
-      global_variables.LOGGER.warning(f"Invalid time '{end_time_str}' entered: {str(e)}")
-      text = f"Invalid time '{end_time_str}' entered. Please enter time in 24 hour format"
-      global_variables.BOT.send_message(message.chat.id, text, parse_mode="Markdown")
-      return
+      try:
+        end_time = datetime.strptime(end_time_str, "%H%M")
+      except Exception as e:
+        global_variables.LOGGER.warning(f"Invalid time '{end_time_str}' entered: {str(e)}")
+        text = f"Invalid time '{end_time_str}' entered. Please enter time in 24 hour format"
+        global_variables.BOT.send_message(message.chat.id, text, parse_mode="Markdown")
+        return
 
-    if end_time < start_time:
-      global_variables.BOT.send_message(message.chat.id, f"Failed to handle query. Invalid input for 'timeslots'. Start time '{start_time_str}' is later than end time '{end_time_str}'", parse_mode="Markdown")
-      return
+      if end_time < start_time:
+        global_variables.BOT.send_message(message.chat.id, f"Failed to handle query. Invalid input for 'timeslots'. Start time '{start_time_str}' is later than end time '{end_time_str}'", parse_mode="Markdown")
+        return
 
-    # Start time from should be at least one minute before existing start time or greater than or equal existing end time
-    is_valid_start_time = True
-    for existing_start_time, existing_end_time in query.start_times:
-      at_least_one_minute_before_existing_start_time = start_time.hour < existing_start_time.hour or start_time.hour == existing_start_time.hour and start_time.minute < existing_start_time.minute
-      greater_than_or_equal_existing_end_time = start_time >= existing_end_time
-      if not at_least_one_minute_before_existing_start_time and not greater_than_or_equal_existing_end_time:
-        conflicting_start_time_str = existing_start_time.strftime("%H%M")
-        conflicting_end_time_str = existing_end_time.strftime("%H%M")
-        is_valid_start_time = False
-        break
-
-      # Edge case where existing timeslot start time and end time are the same
-      if existing_start_time.hour == existing_end_time.hour and existing_start_time.minute == existing_end_time.minute:
-        if start_time.hour == existing_start_time.hour and start_time.minute == existing_start_time.minute:
+      # Start time from should be at least one minute before existing start time or greater than or equal existing end time
+      is_valid_start_time = True
+      for existing_start_time, existing_end_time in query.start_times:
+        at_least_one_minute_before_existing_start_time = start_time.hour < existing_start_time.hour or start_time.hour == existing_start_time.hour and start_time.minute < existing_start_time.minute
+        greater_than_or_equal_existing_end_time = start_time >= existing_end_time
+        if not at_least_one_minute_before_existing_start_time and not greater_than_or_equal_existing_end_time:
           conflicting_start_time_str = existing_start_time.strftime("%H%M")
           conflicting_end_time_str = existing_end_time.strftime("%H%M")
           is_valid_start_time = False
           break
 
-    if not is_valid_start_time:
-      text = f"Start time '{start_time_str}' conflicts with existing timeslot '{conflicting_start_time_str} - {conflicting_end_time_str}'"
-      global_variables.BOT.send_message(message.chat.id, text, parse_mode="Markdown")
-      return
+        # Edge case where existing timeslot start time and end time are the same
+        if existing_start_time.hour == existing_end_time.hour and existing_start_time.minute == existing_end_time.minute:
+          if start_time.hour == existing_start_time.hour and start_time.minute == existing_start_time.minute:
+            conflicting_start_time_str = existing_start_time.strftime("%H%M")
+            conflicting_end_time_str = existing_end_time.strftime("%H%M")
+            is_valid_start_time = False
+            break
 
-    # Start time to should be less than or equal to existing start time or greater than existing end time
-    is_valid_end_time = True
-    for existing_start_time, existing_end_time in query.start_times:
-      less_than_or_equal_existing_start_time = end_time <= existing_start_time
-      greater_than_existing_end_time = end_time > existing_end_time
-      if not less_than_or_equal_existing_start_time and not greater_than_existing_end_time:
-        conflicting_start_time_str = existing_start_time.strftime("%H%M")
-        conflicting_end_time_str = existing_end_time.strftime("%H%M")
-        is_valid_end_time = False
-        break
+      if not is_valid_start_time:
+        text = f"Start time '{start_time_str}' conflicts with existing timeslot '{conflicting_start_time_str} - {conflicting_end_time_str}'"
+        global_variables.BOT.send_message(message.chat.id, text, parse_mode="Markdown")
+        return
 
-      # If end time is greater than existing end time, start time must also be greater than existing end time
-      if greater_than_existing_end_time:
-        if start_time < existing_end_time:
+      # Start time to should be less than or equal to existing start time or greater than existing end time
+      is_valid_end_time = True
+      for existing_start_time, existing_end_time in query.start_times:
+        less_than_or_equal_existing_start_time = end_time <= existing_start_time
+        greater_than_existing_end_time = end_time > existing_end_time
+        if not less_than_or_equal_existing_start_time and not greater_than_existing_end_time:
           conflicting_start_time_str = existing_start_time.strftime("%H%M")
           conflicting_end_time_str = existing_end_time.strftime("%H%M")
-          text = f"Time range '{start_time_str} - {end_time_str}' conflicts with existing timeslot '{conflicting_start_time_str} - {conflicting_end_time_str}'"
-          global_variables.BOT.send_message(message.chat.id, text, parse_mode="Markdown")
-          return
+          is_valid_end_time = False
+          break
+
+        # If end time is greater than existing end time, start time must also be greater than existing end time
+        if greater_than_existing_end_time:
+          if start_time < existing_end_time:
+            conflicting_start_time_str = existing_start_time.strftime("%H%M")
+            conflicting_end_time_str = existing_end_time.strftime("%H%M")
+            text = f"Time range '{start_time_str} - {end_time_str}' conflicts with existing timeslot '{conflicting_start_time_str} - {conflicting_end_time_str}'"
+            global_variables.BOT.send_message(message.chat.id, text, parse_mode="Markdown")
+            return
 
 
-    if not is_valid_end_time:
-      text = f"End time '{end_time_str}' conflicts with existing timeslot '{conflicting_start_time_str} - {conflicting_end_time_str}'"
-      global_variables.BOT.send_message(message.chat.id, text, parse_mode="Markdown")
-      return
+      if not is_valid_end_time:
+        text = f"End time '{end_time_str}' conflicts with existing timeslot '{conflicting_start_time_str} - {conflicting_end_time_str}'"
+        global_variables.BOT.send_message(message.chat.id, text, parse_mode="Markdown")
+        return
 
-    query.start_times.append((start_time, end_time))
-    query.start_times = sorted(query.start_times)
+      query.start_times.append((start_time, end_time))
+      query.start_times = sorted(query.start_times)
 
   # Get class name filter
   query.class_name_filter = "" if input_str_list[-1] == "nil" else input_str_list[-1]

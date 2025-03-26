@@ -134,7 +134,7 @@ class QueryData:
 
   def get_selected_time_str(self) -> str:
     if len(self.start_times) == 0:
-      return "None"
+      return "All"
 
     selected_times = ""
     for start_time_from, start_time_to in self.start_times:
