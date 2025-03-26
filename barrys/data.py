@@ -6,6 +6,6 @@ LOCATION_MAP = {
 }
 
 RESPONSE_LOCATION_TO_STUDIO_LOCATION_MAP = {
-  'Orchard' : StudioLocation.Orchard,
-  'Raffles Place' : StudioLocation.Raffles,
+  "Orchard" : StudioLocation.Orchard,
+  "Raffles Place" : StudioLocation.Raffles,
 }

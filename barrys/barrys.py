@@ -9,64 +9,64 @@ from datetime import datetime, timedelta
 from barrys.data import LOCATION_MAP, RESPONSE_LOCATION_TO_STUDIO_LOCATION_MAP
 
 def send_get_schedule_request(week: int) -> requests.models.Response:
-  url = 'https://apac.barrysbootcamp.com.au/reserve/index.cfm?action=Reserve.chooseClass'
-  params = {'wk': max(0, min(week, 2)), 'site': 1, 'site2': 12}
+  url = "https://apac.barrysbootcamp.com.au/reserve/index.cfm?action=Reserve.chooseClass"
+  params = {"wk": max(0, min(week, 2)), "site": 1, "site2": 12}
   return requests.get(url=url, params=params)
 
 def get_schedule_from_response_soup(soup: BeautifulSoup, week: int) -> dict[datetime.date, list[ClassData]]:
-  reserve_list_div = soup.find('div', class_='tab-content reservelist')
+  reserve_list_div = soup.find("div", class_="tab-content reservelist")
   if reserve_list_div is None:
-    global_variables.LOGGER.warning(f'Failed to get schedule - Reserve list not found: {soup}')
+    global_variables.LOGGER.warning(f"Failed to get schedule - Reserve list not found: {soup}")
     return {}
 
   result_dict = {}
-  for day_div in reserve_list_div.find_all('div', class_='tab-pane'):
-    day_id = day_div.get('id')
+  for day_div in reserve_list_div.find_all("div", class_="tab-pane"):
+    day_id = day_div.get("id")
     if day_id is None:
-      global_variables.LOGGER.warning(f'Failed to get schedule of day - ID not found: {day_div}')
+      global_variables.LOGGER.warning(f"Failed to get schedule of day - ID not found: {day_div}")
       continue
 
-    current_date = datetime.strptime(day_id.strip(), 'day%Y%m%d').date()
-    for schedule_block in day_div.find_all('div', class_='scheduleBlock'):
-      schedule_block_class_list = schedule_block.get('class')
+    current_date = datetime.strptime(day_id.strip(), "day%Y%m%d").date()
+    for schedule_block in day_div.find_all("div", class_="scheduleBlock"):
+      schedule_block_class_list = schedule_block.get("class")
       if len(schedule_block_class_list) < 2:
         availability = ClassAvailability.Null
       else:
         availability_str = schedule_block_class_list[1]
-        if availability_str == 'empty': # No classes available for the day
+        if availability_str == "empty": # No classes available for the day
           continue
         availability = RESPONSE_AVAILABILITY_MAP[availability_str]
 
-      schedule_class_span = schedule_block.find('span', class_='scheduleClass')
+      schedule_class_span = schedule_block.find("span", class_="scheduleClass")
       if schedule_class_span is None:
         # Check if class was cancelled or is an actual error
-        is_cancelled = schedule_block.find('span', class_='scheduleCancelled')
+        is_cancelled = schedule_block.find("span", class_="scheduleCancelled")
         if is_cancelled is None:
-          global_variables.LOGGER.warning(f'Failed to get session name: {schedule_block}')
+          global_variables.LOGGER.warning(f"Failed to get session name: {schedule_block}")
         continue
 
-      schedule_instruc_span = schedule_block.find('span', class_='scheduleInstruc')
+      schedule_instruc_span = schedule_block.find("span", class_="scheduleInstruc")
       if schedule_instruc_span is None:
-        global_variables.LOGGER.warning(f'Failed to get session instructor: {schedule_block}')
+        global_variables.LOGGER.warning(f"Failed to get session instructor: {schedule_block}")
         continue
-      instructor_name_span = schedule_instruc_span.find('span')
+      instructor_name_span = schedule_instruc_span.find("span")
       if instructor_name_span is None:
-        global_variables.LOGGER.warning(f'Failed to get session instructor name: {schedule_instruc_span}')
+        global_variables.LOGGER.warning(f"Failed to get session instructor name: {schedule_instruc_span}")
         continue
       instructor = instructor_name_span.get_text().strip()
-      if schedule_instruc_span.find('i', class_='badge substitute') is not None:
+      if schedule_instruc_span.find("i", class_="badge substitute") is not None:
         instructor += " (S)"
 
-      schedule_time_span = schedule_block.find('span', class_='scheduleTime')
+      schedule_time_span = schedule_block.find("span", class_="scheduleTime")
       if schedule_time_span is None:
-        global_variables.LOGGER.warning(f'Failed to get session time: {schedule_block}')
+        global_variables.LOGGER.warning(f"Failed to get session time: {schedule_block}")
         continue
       schedule_time = schedule_time_span.get_text().strip()
-      schedule_time = schedule_time[:schedule_time.find('M') + 1]
+      schedule_time = schedule_time[:schedule_time.find("M") + 1]
 
-      schedule_site_span = schedule_block.find('span', class_='scheduleSite')
+      schedule_site_span = schedule_block.find("span", class_="scheduleSite")
       if schedule_site_span is None:
-        global_variables.LOGGER.warning(f'Failed to get session location: {schedule_block}')
+        global_variables.LOGGER.warning(f"Failed to get session location: {schedule_block}")
         continue
       location = RESPONSE_LOCATION_TO_STUDIO_LOCATION_MAP[schedule_site_span.get_text().strip()]
 
@@ -82,7 +82,7 @@ def get_schedule_from_response_soup(soup: BeautifulSoup, week: int) -> dict[date
       if current_date not in result_dict:
         result_dict[current_date] = [copy(class_details)]
       elif class_details in result_dict[current_date]:
-        global_variables.LOGGER.warning(f'Found duplicate class {class_details.__dict__}: {day_div}')
+        global_variables.LOGGER.warning(f"Found duplicate class {class_details.__dict__}: {day_div}")
         continue
       else:
         result_dict[current_date].append(copy(class_details))
@@ -90,31 +90,31 @@ def get_schedule_from_response_soup(soup: BeautifulSoup, week: int) -> dict[date
   return result_dict
 
 def get_instructorid_map_from_response_soup(soup: BeautifulSoup) -> dict[str, int]:
-  reserve_filter = soup.find('ul', id='reserveFilter')
+  reserve_filter = soup.find("ul", id="reserveFilter")
   if reserve_filter is None:
-    global_variables.LOGGER.warning(f'Failed to get list of instructors - Reserve filter not found: {soup}')
+    global_variables.LOGGER.warning(f"Failed to get list of instructors - Reserve filter not found: {soup}")
     return {}
 
-  instructor_filter = reserve_filter.find('li', id='reserveFilter1')
+  instructor_filter = reserve_filter.find("li", id="reserveFilter1")
   if instructor_filter is None:
-    global_variables.LOGGER.warning(f'Failed to get list of instructors - Instructor filter not found: {reserve_filter}')
+    global_variables.LOGGER.warning(f"Failed to get list of instructors - Instructor filter not found: {reserve_filter}")
     return {}
 
   instructorid_map = {}
-  for instructor in instructor_filter.find_all('li'):
+  for instructor in instructor_filter.find_all("li"):
     instructor_name = instructor.string
     if instructor.a is None:
-      global_variables.LOGGER.warning(f'Failed to get id of instructor {instructor_name} - A tag is null: {instructor}')
+      global_variables.LOGGER.warning(f"Failed to get id of instructor {instructor_name} - A tag is null: {instructor}")
       continue
 
-    href = instructor.a.get('href')
+    href = instructor.a.get("href")
     if href is None:
-      global_variables.LOGGER.warning(f'Failed to get id of instructor {instructor_name} - Href is null: {instructor.a}')
+      global_variables.LOGGER.warning(f"Failed to get id of instructor {instructor_name} - Href is null: {instructor.a}")
       continue
 
-    match = re.search(r'instructorid=(\d+)', href)
+    match = re.search(r"instructorid=(\d+)", href)
     if match is None:
-      global_variables.LOGGER.warning(f'Failed to get id of instructor {instructor_name} - Regex failed to match: {href}')
+      global_variables.LOGGER.warning(f"Failed to get id of instructor {instructor_name} - Regex failed to match: {href}")
       continue
 
     instructorid_map[instructor_name.lower()] = match.group(1)
@@ -129,7 +129,7 @@ def get_barrys_schedule_and_instructorid_map() -> tuple[ResultData, dict[str, in
   # Barrys schedule only shows up to 3 weeks in advance
   for week in range(0, 3):
     get_schedule_response = send_get_schedule_request(week=week)
-    soup = BeautifulSoup(get_schedule_response.text, 'html.parser')
+    soup = BeautifulSoup(get_schedule_response.text, "html.parser")
 
     # Get schedule
     date_class_data_list_dict = get_schedule_from_response_soup(soup=soup, week=week)
