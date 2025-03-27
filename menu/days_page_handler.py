@@ -64,7 +64,7 @@ def days_selection_handler(message: telebot.types.Message) -> None:
   text = "*Currently selected day(s)*\n"
   text += query_data.get_query_str(include_days=True)
 
-  sent_msg = global_variables.BOT.send_message(message.chat.id, text, reply_markup=get_days_keyboard(message.chat.id), parse_mode="Markdown")
+  sent_msg = global_variables.CHAT_MANAGER.send_prompt(chat_id=message.chat.id, text=text, reply_markup=get_days_keyboard(message.chat.id), delete_sent_msg_in_future=True)
   global_variables.CHAT_MANAGER.update_button_data_days_selection_message(message.chat.id, sent_msg)
 
 @global_variables.BOT.callback_query_handler(func=lambda query: eval(query.data)["step"] == "days-next")
@@ -72,7 +72,7 @@ def days_next_callback_query_handler(query: telebot.types.CallbackQuery) -> None
   query_data = global_variables.CHAT_MANAGER.get_query_data(query.message.chat.id)
   if len(query_data.days) == 0:
     text = "No day(s) selected. Please select the day(s) to get schedule for"
-    sent_msg = global_variables.BOT.send_message(query.message.chat.id, text, parse_mode="Markdown")
+    global_variables.CHAT_MANAGER.send_prompt(chat_id=query.message.chat.id, text=text, reply_markup=None, delete_sent_msg_in_future=False)
     days_selection_handler(query.message)
     return
 

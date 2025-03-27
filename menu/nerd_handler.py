@@ -36,7 +36,8 @@ def nerd_handler(message: telebot.types.Message) -> None:
          "0700-0900, 1300-1500, 1800-2000\n" \
          "essential\n`"
 
-  sent_msg = global_variables.BOT.send_message(message.chat.id, text, parse_mode="Markdown")
+  global_variables.CHAT_MANAGER.add_message_id_to_delete(message.chat.id, message.id)
+  sent_msg = global_variables.CHAT_MANAGER.send_prompt(chat_id=message.chat.id, text=text, reply_markup=None, delete_sent_msg_in_future=False)
   global_variables.BOT.register_next_step_handler(sent_msg, nerd_input_handler)
 
 def nerd_input_handler(message: telebot.types.Message) -> None:
@@ -47,7 +48,8 @@ def nerd_input_handler(message: telebot.types.Message) -> None:
 
   # Weeks, days, timeslots, and class name filter = 4 items. Remaining items should be divisible by 3 (studio name, locations, instructors)
   if len(input_str_list) < 7 or (len(input_str_list) - 4) % 3 != 0:
-    global_variables.BOT.send_message(message.chat.id, "Failed to handle query. Unexpected format received.", parse_mode="Markdown")
+    text = "Failed to handle query. Unexpected format received."
+    global_variables.CHAT_MANAGER.send_prompt(chat_id=message.chat.id, text=text, reply_markup=None, delete_sent_msg_in_future=False)
     return
 
   # Loop through studios
@@ -65,7 +67,8 @@ def nerd_input_handler(message: telebot.types.Message) -> None:
           found_studio = True
           break
       if not found_studio:
-        global_variables.BOT.send_message(message.chat.id, f"Failed to handle query. Unexpected studio name '{input_str}'", parse_mode="Markdown")
+        text = f"Failed to handle query. Unexpected studio name '{input_str}'"
+        global_variables.CHAT_MANAGER.send_prompt(chat_id=message.chat.id, text=text, reply_markup=None, delete_sent_msg_in_future=False)
         return
     elif step == 1: # Studio locations
       selected_locations = [x.strip() for x in input_str.split(",")]
@@ -77,7 +80,8 @@ def nerd_input_handler(message: telebot.types.Message) -> None:
             found_location = True
             break
         if not found_location:
-          global_variables.BOT.send_message(message.chat.id, f"Failed to handle query. Unexpected studio name '{selected_location}'", parse_mode="Markdown")
+          text = f"Failed to handle query. Unexpected studio name '{selected_location}'"
+          global_variables.CHAT_MANAGER.send_prompt(chat_id=message.chat.id, text=text, reply_markup=None, delete_sent_msg_in_future=False)
           return
     elif step == 2: # Studio instructors
       instructor_list = []
@@ -107,10 +111,11 @@ def nerd_input_handler(message: telebot.types.Message) -> None:
       if len(invalid_instructors) > 0:
         selected_instructors = [instructor for instructor in selected_instructors if instructor not in invalid_instructors]
         text = f"Failed to find instructor(s): {', '.join(invalid_instructors)}"
-        sent_msg = global_variables.BOT.send_message(message.chat.id, text, parse_mode="Markdown")
+        global_variables.CHAT_MANAGER.send_prompt(chat_id=message.chat.id, text=text, reply_markup=None, delete_sent_msg_in_future=False)
 
       if len(selected_instructors) == 0:
-        global_variables.BOT.send_message(message.chat.id, f"Failed to handle query. No instructor selected for {current_studio}", parse_mode="Markdown")
+        text = f"Failed to handle query. No instructor selected for {current_studio}"
+        global_variables.CHAT_MANAGER.send_prompt(chat_id=message.chat.id, text=text, reply_markup=None, delete_sent_msg_in_future=False)
         return
 
       query.studios[current_studio] = StudioData(locations=current_studio_locations, instructors = selected_instructors)
@@ -119,7 +124,8 @@ def nerd_input_handler(message: telebot.types.Message) -> None:
   try:
     query.weeks = int(input_str_list[-4])
   except:
-    global_variables.BOT.send_message(message.chat.id, f"Failed to handle query. Invalid input for 'weeks'. Expected number, got {input_str_list[-2]}", parse_mode="Markdown")
+    text = f"Failed to handle query. Invalid input for 'weeks'. Expected number, got {input_str_list[-2]}"
+    global_variables.CHAT_MANAGER.send_prompt(chat_id=message.chat.id, text=text, reply_markup=None, delete_sent_msg_in_future=False)
     return
 
   # Get list of days
@@ -129,7 +135,8 @@ def nerd_input_handler(message: telebot.types.Message) -> None:
   else:
     for selected_day in query.days:
       if selected_day.capitalize() not in SORTED_DAYS:
-        global_variables.BOT.send_message(message.chat.id, f"Failed to handle query. Invalid input for 'days'. Unknown day {selected_day}", parse_mode="Markdown")
+        text = f"Failed to handle query. Invalid input for 'days'. Unknown day {selected_day}"
+        global_variables.CHAT_MANAGER.send_prompt(chat_id=message.chat.id, text=text, reply_markup=None, delete_sent_msg_in_future=False)
         return
 
   # Get timeslots
@@ -139,18 +146,21 @@ def nerd_input_handler(message: telebot.types.Message) -> None:
     for timeslot in timeslots:
       timings = timeslot.split("-")
       if len(timings) != 2:
-        global_variables.BOT.send_message(message.chat.id, f"Failed to handle query. Invalid input for 'timeslots'. '{timeslot}' is not a valid timeslot", parse_mode="Markdown")
+        text = f"Failed to handle query. Invalid input for 'timeslots'. '{timeslot}' is not a valid timeslot"
+        global_variables.CHAT_MANAGER.send_prompt(chat_id=message.chat.id, text=text, reply_markup=None, delete_sent_msg_in_future=False)
         return
 
       start_time_str = timings[0]
       end_time_str = timings[1]
 
       if len(start_time_str) != 4:
-        global_variables.BOT.send_message(message.chat.id, f"Failed to handle query. Invalid input for 'timeslots'. Start time '{start_time_str}' is not valid", parse_mode="Markdown")
+        text = f"Failed to handle query. Invalid input for 'timeslots'. Start time '{start_time_str}' is not valid"
+        global_variables.CHAT_MANAGER.send_prompt(chat_id=message.chat.id, text=text, reply_markup=None, delete_sent_msg_in_future=False)
         return
 
       if len(end_time_str) != 4:
-        global_variables.BOT.send_message(message.chat.id, f"Failed to handle query. Invalid input for 'timeslots'. End time '{end_time_str}' is not valid", parse_mode="Markdown")
+        text = f"Failed to handle query. Invalid input for 'timeslots'. End time '{end_time_str}' is not valid"
+        global_variables.CHAT_MANAGER.send_prompt(chat_id=message.chat.id, text=text, reply_markup=None, delete_sent_msg_in_future=False)
         return
 
       try:
@@ -158,7 +168,7 @@ def nerd_input_handler(message: telebot.types.Message) -> None:
       except Exception as e:
         global_variables.LOGGER.warning(f"Invalid time '{start_time_str}' entered: {str(e)}")
         text = f"Invalid time '{start_time_str}' entered. Please enter time in 24 hour format"
-        global_variables.BOT.send_message(message.chat.id, text, parse_mode="Markdown")
+        global_variables.CHAT_MANAGER.send_prompt(chat_id=message.chat.id, text=text, reply_markup=None, delete_sent_msg_in_future=False)
         return
 
       try:
@@ -166,11 +176,12 @@ def nerd_input_handler(message: telebot.types.Message) -> None:
       except Exception as e:
         global_variables.LOGGER.warning(f"Invalid time '{end_time_str}' entered: {str(e)}")
         text = f"Invalid time '{end_time_str}' entered. Please enter time in 24 hour format"
-        global_variables.BOT.send_message(message.chat.id, text, parse_mode="Markdown")
+        global_variables.CHAT_MANAGER.send_prompt(chat_id=message.chat.id, text=text, reply_markup=None, delete_sent_msg_in_future=False)
         return
 
       if end_time < start_time:
-        global_variables.BOT.send_message(message.chat.id, f"Failed to handle query. Invalid input for 'timeslots'. Start time '{start_time_str}' is later than end time '{end_time_str}'", parse_mode="Markdown")
+        text = f"Failed to handle query. Invalid input for 'timeslots'. Start time '{start_time_str}' is later than end time '{end_time_str}'"
+        global_variables.CHAT_MANAGER.send_prompt(chat_id=message.chat.id, text=text, reply_markup=None, delete_sent_msg_in_future=False)
         return
 
       # Start time from should be at least one minute before existing start time or greater than or equal existing end time
@@ -194,7 +205,7 @@ def nerd_input_handler(message: telebot.types.Message) -> None:
 
       if not is_valid_start_time:
         text = f"Start time '{start_time_str}' conflicts with existing timeslot '{conflicting_start_time_str} - {conflicting_end_time_str}'"
-        global_variables.BOT.send_message(message.chat.id, text, parse_mode="Markdown")
+        global_variables.CHAT_MANAGER.send_prompt(chat_id=message.chat.id, text=text, reply_markup=None, delete_sent_msg_in_future=False)
         return
 
       # Start time to should be less than or equal to existing start time or greater than existing end time
@@ -214,13 +225,13 @@ def nerd_input_handler(message: telebot.types.Message) -> None:
             conflicting_start_time_str = existing_start_time.strftime("%H%M")
             conflicting_end_time_str = existing_end_time.strftime("%H%M")
             text = f"Time range '{start_time_str} - {end_time_str}' conflicts with existing timeslot '{conflicting_start_time_str} - {conflicting_end_time_str}'"
-            global_variables.BOT.send_message(message.chat.id, text, parse_mode="Markdown")
+            global_variables.CHAT_MANAGER.send_prompt(chat_id=message.chat.id, text=text, reply_markup=None, delete_sent_msg_in_future=False)
             return
 
 
       if not is_valid_end_time:
         text = f"End time '{end_time_str}' conflicts with existing timeslot '{conflicting_start_time_str} - {conflicting_end_time_str}'"
-        global_variables.BOT.send_message(message.chat.id, text, parse_mode="Markdown")
+        global_variables.CHAT_MANAGER.send_prompt(chat_id=message.chat.id, text=text, reply_markup=None, delete_sent_msg_in_future=False)
         return
 
       query.start_times.append((start_time, end_time))
@@ -238,12 +249,12 @@ def nerd_input_handler(message: telebot.types.Message) -> None:
       is_new_day = any(day in line for day in SORTED_DAYS) and len(shortened_message) > 0
       max_len_reached = len(shortened_message) + len(line) > 4095
       if is_new_day or max_len_reached:
-        global_variables.BOT.send_message(message.chat.id, shortened_message, parse_mode="Markdown")
+        global_variables.CHAT_MANAGER.send_prompt(chat_id=message.chat.id, text=shortened_message, reply_markup=None, delete_sent_msg_in_future=False)
         shortened_message = line + "\n"
       else:
         shortened_message += line + "\n"
 
     if len(shortened_message) > 0:
-      global_variables.BOT.send_message(message.chat.id, shortened_message, parse_mode="Markdown")
+      global_variables.CHAT_MANAGER.send_prompt(chat_id=message.chat.id, text=shortened_message, reply_markup=None, delete_sent_msg_in_future=False)
   else:
-    global_variables.BOT.send_message(message.chat.id, schedule_str, parse_mode="Markdown")
+    global_variables.CHAT_MANAGER.send_prompt(chat_id=message.chat.id, text=schedule_str, reply_markup=None, delete_sent_msg_in_future=False)

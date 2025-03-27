@@ -7,14 +7,14 @@ from menu.main_page_handler import main_page_handler
 def get_schedule_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
   query_data = global_variables.CHAT_MANAGER.get_query_data(query.message.chat.id)
   if len(query_data.studios) == 0:
-    text = "No studio(s) selected. Please select the studio(s) to get schedule for"
-    sent_msg = global_variables.BOT.send_message(query.message.chat.id, text, parse_mode="Markdown")
+    text = "No studio selected. Please select a studio to get schedule for"
+    global_variables.CHAT_MANAGER.send_prompt(chat_id=query.message.chat.id, text=text, reply_markup=None, delete_sent_msg_in_future=False)
     main_page_handler(query.message)
     return
 
   if len(query_data.days) == 0:
-    text = "No day(s) selected. Please select the day(s) to get schedule for"
-    sent_msg = global_variables.BOT.send_message(query.message.chat.id, text, parse_mode="Markdown")
+    text = "No day selected. Please select the day to get schedule for"
+    global_variables.CHAT_MANAGER.send_prompt(chat_id=query.message.chat.id, text=text, reply_markup=None, delete_sent_msg_in_future=False)
     main_page_handler(query.message)
     return
 
@@ -35,12 +35,12 @@ def send_results(query: telebot.types.CallbackQuery) -> None:
       is_new_day = line[1:].startswith(tuple(SORTED_DAYS)) and shortened_message_len > 0
       max_len_reached = shortened_message_len + len(line) > 4095
       if is_new_day or max_len_reached:
-        global_variables.BOT.send_message(query.message.chat.id, shortened_message, parse_mode="Markdown")
+        global_variables.CHAT_MANAGER.send_prompt(chat_id=query.message.chat.id, text=shortened_message, reply_markup=None, delete_sent_msg_in_future=False)
         shortened_message = line + "\n"
       else:
         shortened_message += line + "\n"
 
     if len(shortened_message) > 0:
-      global_variables.BOT.send_message(query.message.chat.id, shortened_message, parse_mode="Markdown")
+      global_variables.CHAT_MANAGER.send_prompt(chat_id=query.message.chat.id, text=shortened_message, reply_markup=None, delete_sent_msg_in_future=False)
   else:
-    global_variables.BOT.send_message(query.message.chat.id, schedule_str, parse_mode="Markdown")
+    global_variables.CHAT_MANAGER.send_prompt(chat_id=query.message.chat.id, text=schedule_str, reply_markup=None, delete_sent_msg_in_future=False)

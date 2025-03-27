@@ -25,6 +25,7 @@ def start_handler(message: telebot.types.Message) -> None:
   global_variables.HISTORY_HANDLER.add(int(time.time()), message.from_user.id, message.chat.id, message.from_user.username, message.from_user.first_name, message.from_user.last_name, "start")
   global_variables.CHAT_MANAGER.reset_query_data(message.chat.id)
   global_variables.CHAT_MANAGER.reset_button_data(message.chat.id)
+  global_variables.CHAT_MANAGER.add_message_id_to_delete(message.chat.id, message.id)
   menu.main_page_handler.main_page_handler(message)
 
 def update_cached_result_data() -> None:

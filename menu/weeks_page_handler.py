@@ -20,7 +20,8 @@ def weeks_selection_callback_query_handler(query: telebot.types.CallbackQuery) -
   keyboard.add(one_button, two_button)
   keyboard.add(three_button, four_button)
   keyboard.add(back_button)
-  sent_msg = global_variables.BOT.send_message(query.message.chat.id, text, reply_markup=keyboard, parse_mode="Markdown")
+
+  global_variables.CHAT_MANAGER.send_prompt(chat_id=query.message.chat.id, text=text, reply_markup=keyboard, delete_sent_msg_in_future=True)
 
 @global_variables.BOT.callback_query_handler(func=lambda query: eval(query.data)["step"] == "weeks")
 def weeks_callback_query_handler(query: telebot.types.CallbackQuery) -> None:

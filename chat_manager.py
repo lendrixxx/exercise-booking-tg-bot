@@ -1,3 +1,4 @@
+import global_variables
 from common.data_types import SORTED_DAYS, STUDIO_LOCATIONS_MAP, StudioData, StudioLocation, StudioType, QueryData
 from telebot.types import InlineKeyboardButton
 
@@ -104,6 +105,7 @@ class ChatManager:
   def __init__(self):
     self.chat_query_data = {}
     self.chat_button_data = {}
+    self.chat_message_ids_to_delete = {}
 
   def reset_query_data(self, chat_id):
     self.chat_query_data[chat_id] = QueryData(studios={}, current_studio=StudioType.Null, weeks=1, days=SORTED_DAYS, start_times=[], class_name_filter="")
@@ -162,8 +164,25 @@ class ChatManager:
   def update_button_data_days_buttons_map(self, chat_id, days_buttons_map):
     self.chat_button_data[chat_id].days_buttons_map = days_buttons_map
 
+  def add_message_id_to_delete(self, chat_id, message_id):
+    if chat_id in self.chat_message_ids_to_delete:
+      self.chat_message_ids_to_delete[chat_id].append(message_id)
+    else:
+      self.chat_message_ids_to_delete[chat_id] = [message_id]
+
   def get_query_data(self, chat_id):
     return self.chat_query_data[chat_id]
 
   def get_button_data(self, chat_id):
     return self.chat_button_data[chat_id]
+
+  def send_prompt(self, chat_id, text, reply_markup, delete_sent_msg_in_future):
+    message_ids_to_delete = self.chat_message_ids_to_delete.pop(chat_id, None)
+    if message_ids_to_delete is not None:
+      global_variables.BOT.delete_messages(chat_id, message_ids_to_delete)
+
+    sent_msg = global_variables.BOT.send_message(chat_id, text, reply_markup=reply_markup, parse_mode="Markdown")
+    if delete_sent_msg_in_future:
+      self.add_message_id_to_delete(chat_id, sent_msg.id)
+
+    return sent_msg

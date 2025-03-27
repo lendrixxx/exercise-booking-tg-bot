@@ -18,12 +18,13 @@ def class_name_filter_selection_handler(message: telebot.types.Message) -> None:
   keyboard = telebot.types.InlineKeyboardMarkup()
   keyboard.add(set_filter_button, reset_filter_button)
   keyboard.add(next_button)
-  sent_msg = global_variables.BOT.send_message(message.chat.id, text, reply_markup=keyboard, parse_mode="Markdown")
+
+  global_variables.CHAT_MANAGER.send_prompt(chat_id=message.chat.id, text=text, reply_markup=keyboard, delete_sent_msg_in_future=True)
 
 @global_variables.BOT.callback_query_handler(func=lambda query: eval(query.data)["step"] == "class-name-filter-add")
 def class_name_filter_set_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
   text = "Enter name of class to filter (non-case sensitive)\ne.g. *essential*"
-  sent_msg = global_variables.BOT.send_message(query.message.chat.id, text, parse_mode="Markdown")
+  sent_msg = global_variables.CHAT_MANAGER.send_prompt(chat_id=query.message.chat.id, text=text, reply_markup=None, delete_sent_msg_in_future=True)
   global_variables.BOT.register_next_step_handler(sent_msg, class_name_filter_input_handler)
 
 def class_name_filter_input_handler(message: telebot.types.Message) -> None:

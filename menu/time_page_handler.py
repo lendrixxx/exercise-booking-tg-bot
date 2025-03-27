@@ -22,7 +22,8 @@ def time_selection_handler(message: telebot.types.Message) -> None:
   keyboard.add(remove_timeslot_button)
   keyboard.add(reset_all_timeslot_button)
   keyboard.add(next_button)
-  sent_msg = global_variables.BOT.send_message(message.chat.id, text, reply_markup=keyboard, parse_mode="Markdown")
+
+  global_variables.CHAT_MANAGER.send_prompt(chat_id=message.chat.id, text=text, reply_markup=keyboard, delete_sent_msg_in_future=True)
 
 @global_variables.BOT.callback_query_handler(func=lambda query: eval(query.data)["step"] == "time-selection-add")
 def time_selection_add_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
@@ -30,7 +31,7 @@ def time_selection_add_callback_query_handler(query: telebot.types.CallbackQuery
 
 def start_time_selection_handler(message: telebot.types.Message) -> None:
   text = "Enter range of timeslot to check\ne.g. *0700-0830*"
-  sent_msg = global_variables.BOT.send_message(message.chat.id, text, parse_mode="Markdown")
+  sent_msg = global_variables.CHAT_MANAGER.send_prompt(chat_id=message.chat.id, text=text, reply_markup=None, delete_sent_msg_in_future=True)
   global_variables.BOT.register_next_step_handler(sent_msg, start_time_input_handler)
 
 def start_time_input_handler(message: telebot.types.Message) -> None:
@@ -53,14 +54,14 @@ def start_time_input_handler(message: telebot.types.Message) -> None:
     end_time = datetime.strptime(end_time_str, "%H%M")
   except Exception as e:
     global_variables.LOGGER.warning(f"Invalid time '{message.text}' entered: {str(e)}")
-    text = f"Invalid time '{message.text}' entered"
-    sent_msg = global_variables.BOT.send_message(message.chat.id, text, parse_mode="Markdown")
+    text = f"Invalid timeslot range '{message.text}' entered"
+    global_variables.CHAT_MANAGER.send_prompt(chat_id=message.chat.id, text=text, reply_markup=None, delete_sent_msg_in_future=False)
     time_selection_handler(message)
     return
 
   if end_time < start_time:
-    text = f"End time must be later than or equal start time. Start time: {query_data.start_time.strftime('%H%M')}"
-    sent_msg = global_variables.BOT.send_message(message.chat.id, text, parse_mode="Markdown")
+    text = f"End time must be later than or equal start time. Start time: {start_time.strftime('%H%M')}, End time: {end_time.strftime('%H%M')}"
+    global_variables.CHAT_MANAGER.send_prompt(chat_id=message.chat.id, text=text, reply_markup=None, delete_sent_msg_in_future=False)
     time_selection_handler(message)
     return
 
@@ -87,7 +88,7 @@ def start_time_input_handler(message: telebot.types.Message) -> None:
 
   if not is_valid_start_time:
     text = f"Start time '{start_time_str}' conflicts with existing timeslot '{conflicting_start_time_str} - {conflicting_end_time_str}'"
-    sent_msg = global_variables.BOT.send_message(message.chat.id, text, parse_mode="Markdown")
+    global_variables.CHAT_MANAGER.send_prompt(chat_id=message.chat.id, text=text, reply_markup=None, delete_sent_msg_in_future=False)
     time_selection_handler(message)
     return
 
@@ -108,13 +109,13 @@ def start_time_input_handler(message: telebot.types.Message) -> None:
         conflicting_start_time_str = existing_start_time.strftime("%H%M")
         conflicting_end_time_str = existing_end_time.strftime("%H%M")
         text = f"Time range '{start_time_str} - {end_time_str}' conflicts with existing timeslot '{conflicting_start_time_str} - {conflicting_end_time_str}'"
-        sent_msg = global_variables.BOT.send_message(message.chat.id, text, parse_mode="Markdown")
+        global_variables.CHAT_MANAGER.send_prompt(chat_id=message.chat.id, text=text, reply_markup=None, delete_sent_msg_in_future=False)
         time_selection_handler(message)
         return
 
   if not is_valid_end_time:
     text = f"End time '{end_time_str}' conflicts with existing timeslot '{conflicting_start_time_str} - {conflicting_end_time_str}'"
-    sent_msg = global_variables.BOT.send_message(message.chat.id, text, parse_mode="Markdown")
+    global_variables.CHAT_MANAGER.send_prompt(chat_id=message.chat.id, text=text, reply_markup=None, delete_sent_msg_in_future=False)
     time_selection_handler(message)
     return
 
@@ -130,7 +131,7 @@ def time_selection_remove_handler(message: telebot.types.Message) -> None:
   query_data = global_variables.CHAT_MANAGER.get_query_data(message.chat.id)
   if len(query_data.start_times) == 0:
     text = "No timeslot to remove"
-    sent_msg = global_variables.BOT.send_message(message.chat.id, text, parse_mode="Markdown")
+    global_variables.CHAT_MANAGER.send_prompt(chat_id=message.chat.id, text=text, reply_markup=None, delete_sent_msg_in_future=False)
     time_selection_handler(message)
   else:
     text = "*Select timeslot to remove*"
@@ -145,7 +146,7 @@ def time_selection_remove_handler(message: telebot.types.Message) -> None:
 
     back_button = telebot.types.InlineKeyboardButton("◀️ Back", callback_data="{'step': 'time-selection'}")
     keyboard.add(back_button)
-    sent_msg = global_variables.BOT.send_message(message.chat.id, text, reply_markup=keyboard, parse_mode="Markdown")
+    global_variables.CHAT_MANAGER.send_prompt(chat_id=message.chat.id, text=text, reply_markup=keyboard, delete_sent_msg_in_future=True)
 
 @global_variables.BOT.callback_query_handler(func=lambda query: eval(query.data)["step"] == "remove-timeslot")
 def time_selection_remove_timeslot_callback_query_handler(query: telebot.types.CallbackQuery) -> None:

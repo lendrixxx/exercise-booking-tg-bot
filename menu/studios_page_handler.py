@@ -49,7 +49,7 @@ def studios_selection_callback_query_handler(query: telebot.types.CallbackQuery)
   text = "*Currently selected studio(s)*\n"
   text += query_data.get_query_str(include_studio=True)
 
-  sent_msg = global_variables.BOT.send_message(query.message.chat.id, text, reply_markup=get_studios_keyboard(query.message.chat.id), parse_mode="Markdown")
+  sent_msg = global_variables.CHAT_MANAGER.send_prompt(chat_id=query.message.chat.id, text=text, reply_markup=get_studios_keyboard(query.message.chat.id), delete_sent_msg_in_future=True)
   global_variables.CHAT_MANAGER.update_button_data_studios_selection_message(query.message.chat.id, sent_msg)
 
 @global_variables.BOT.callback_query_handler(func=lambda query: eval(query.data)["step"] == "studios")
@@ -96,8 +96,7 @@ def locations_handler(message: telebot.types.Message):
   text = "*Currently selected studio(s)*\n"
   text += query_data.get_query_str(include_studio=True)
 
-  sent_msg = global_variables.BOT.send_message(
-    message.chat.id, text, reply_markup=get_locations_keyboard(message.chat.id), parse_mode="Markdown")
+  sent_msg = global_variables.CHAT_MANAGER.send_prompt(chat_id=message.chat.id, text=text, reply_markup=get_locations_keyboard(message.chat.id), delete_sent_msg_in_future=True)
   global_variables.CHAT_MANAGER.update_button_data_locations_selection_message(message.chat.id, sent_msg)
 
 def select_location_handler(message: telebot.types.Message, selected_studio_location: StudioLocation) -> None:

@@ -23,4 +23,5 @@ def main_page_handler(message: telebot.types.Message) -> None:
   keyboard.add(weeks_button, days_button)
   keyboard.add(time_button, class_name_button)
   keyboard.add(next_button)
-  sent_msg = global_variables.BOT.send_message(message.chat.id, text, reply_markup=keyboard, parse_mode="Markdown")
+
+  global_variables.CHAT_MANAGER.send_prompt(chat_id=message.chat.id, text=text, reply_markup=keyboard, delete_sent_msg_in_future=True)
