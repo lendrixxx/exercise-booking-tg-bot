@@ -4,10 +4,10 @@ from datetime import datetime
 
 @global_variables.BOT.callback_query_handler(func=lambda query: eval(query.data)["step"] == "time-selection")
 def time_selection_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
-  time_selection_handler(query.from_user.id, query.message)
+  time_selection_handler(query.message)
 
-def time_selection_handler(user_id: int, message: telebot.types.Message) -> None:
-  query_data = global_variables.USER_MANAGER.get_query_data(user_id, message.chat.id)
+def time_selection_handler(message: telebot.types.Message) -> None:
+  query_data = global_variables.CHAT_MANAGER.get_query_data(message.chat.id)
   text = "*Currently selected timings(s)*\n"
   text += query_data.get_query_str(include_time=True)
 
@@ -26,14 +26,14 @@ def time_selection_handler(user_id: int, message: telebot.types.Message) -> None
 
 @global_variables.BOT.callback_query_handler(func=lambda query: eval(query.data)["step"] == "time-selection-add")
 def time_selection_add_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
-  start_time_selection_handler(query.from_user.id, query.message)
+  start_time_selection_handler(query.message)
 
-def start_time_selection_handler(user_id: int, message: telebot.types.Message) -> None:
+def start_time_selection_handler(message: telebot.types.Message) -> None:
   text = "Enter range of timeslot to check\ne.g. *0700-0830*"
   sent_msg = global_variables.BOT.send_message(message.chat.id, text, parse_mode="Markdown")
-  global_variables.BOT.register_next_step_handler(sent_msg, start_time_input_handler, user_id)
+  global_variables.BOT.register_next_step_handler(sent_msg, start_time_input_handler)
 
-def start_time_input_handler(message: telebot.types.Message, user_id: int) -> None:
+def start_time_input_handler(message: telebot.types.Message) -> None:
   try:
     message_without_whitespace = "".join(message.text.split())
     split_message_without_whitespace = message_without_whitespace.split("-")
@@ -55,16 +55,16 @@ def start_time_input_handler(message: telebot.types.Message, user_id: int) -> No
     global_variables.LOGGER.warning(f"Invalid time '{message.text}' entered: {str(e)}")
     text = f"Invalid time '{message.text}' entered"
     sent_msg = global_variables.BOT.send_message(message.chat.id, text, parse_mode="Markdown")
-    time_selection_handler(user_id, message)
+    time_selection_handler(message)
     return
 
   if end_time < start_time:
     text = f"End time must be later than or equal start time. Start time: {query_data.start_time.strftime('%H%M')}"
     sent_msg = global_variables.BOT.send_message(message.chat.id, text, parse_mode="Markdown")
-    time_selection_handler(user_id, message)
+    time_selection_handler(message)
     return
 
-  query_data = global_variables.USER_MANAGER.get_query_data(user_id, message.chat.id)
+  query_data = global_variables.CHAT_MANAGER.get_query_data(message.chat.id)
 
   # Start time should be at least one minute before existing start time or greater than or equal existing end time
   is_valid_start_time = True
@@ -88,7 +88,7 @@ def start_time_input_handler(message: telebot.types.Message, user_id: int) -> No
   if not is_valid_start_time:
     text = f"Start time '{start_time_str}' conflicts with existing timeslot '{conflicting_start_time_str} - {conflicting_end_time_str}'"
     sent_msg = global_variables.BOT.send_message(message.chat.id, text, parse_mode="Markdown")
-    time_selection_handler(user_id, message)
+    time_selection_handler(message)
     return
 
   # End time should be less than or equal to existing start time or greater than existing end time
@@ -109,29 +109,29 @@ def start_time_input_handler(message: telebot.types.Message, user_id: int) -> No
         conflicting_end_time_str = existing_end_time.strftime("%H%M")
         text = f"Time range '{start_time_str} - {end_time_str}' conflicts with existing timeslot '{conflicting_start_time_str} - {conflicting_end_time_str}'"
         sent_msg = global_variables.BOT.send_message(message.chat.id, text, parse_mode="Markdown")
-        time_selection_handler(user_id, message)
+        time_selection_handler(message)
         return
 
   if not is_valid_end_time:
     text = f"End time '{end_time_str}' conflicts with existing timeslot '{conflicting_start_time_str} - {conflicting_end_time_str}'"
     sent_msg = global_variables.BOT.send_message(message.chat.id, text, parse_mode="Markdown")
-    time_selection_handler(user_id, message)
+    time_selection_handler(message)
     return
 
   query_data.start_times.append((start_time, end_time))
   query_data.start_times = sorted(query_data.start_times)
-  time_selection_handler(user_id, message)
+  time_selection_handler(message)
 
 @global_variables.BOT.callback_query_handler(func=lambda query: eval(query.data)["step"] == "time-selection-remove")
 def time_selection_remove_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
-  time_selection_remove_handler(query.message, query.from_user.id)
+  time_selection_remove_handler(query.message)
 
-def time_selection_remove_handler(message: telebot.types.Message, user_id: int) -> None:
-  query_data = global_variables.USER_MANAGER.get_query_data(user_id, message.chat.id)
+def time_selection_remove_handler(message: telebot.types.Message) -> None:
+  query_data = global_variables.CHAT_MANAGER.get_query_data(message.chat.id)
   if len(query_data.start_times) == 0:
     text = "No timeslot to remove"
     sent_msg = global_variables.BOT.send_message(message.chat.id, text, parse_mode="Markdown")
-    time_selection_handler(user_id, message)
+    time_selection_handler(message)
   else:
     text = "*Select timeslot to remove*"
     keyboard = telebot.types.InlineKeyboardMarkup()
@@ -151,12 +151,12 @@ def time_selection_remove_handler(message: telebot.types.Message, user_id: int) 
 def time_selection_remove_timeslot_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
   start_time = eval(query.data)["start"]
   end_time = eval(query.data)["end"]
-  query_data = global_variables.USER_MANAGER.get_query_data(query.from_user.id, query.message.chat.id)
+  query_data = global_variables.CHAT_MANAGER.get_query_data(query.message.chat.id)
   query_data.start_times.remove((datetime.strptime(start_time, "%H%M"), datetime.strptime(end_time, "%H%M")))
-  time_selection_handler(query.from_user.id, query.message)
+  time_selection_handler(query.message)
 
 @global_variables.BOT.callback_query_handler(func=lambda query: eval(query.data)["step"] == "time-selection-reset")
 def time_selection_remove_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
-  query_data = global_variables.USER_MANAGER.get_query_data(query.from_user.id, query.message.chat.id)
+  query_data = global_variables.CHAT_MANAGER.get_query_data(query.message.chat.id)
   query_data.start_times = []
-  time_selection_handler(query.from_user.id, query.message)
+  time_selection_handler(query.message)

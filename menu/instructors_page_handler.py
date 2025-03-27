@@ -17,11 +17,11 @@ def instructors_list_handler(message: telebot.types.Message) -> None:
 @global_variables.BOT.callback_query_handler(func=lambda query: eval(query.data)["step"] == "instructors-selection")
 def instructors_selection_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
   query_data_dict = eval(query.data)
-  instructors_selection_handler(query.from_user.id, query.message)
+  instructors_selection_handler(query.message)
 
 @global_variables.BOT.callback_query_handler(func=lambda query: eval(query.data)["step"] == "show-instructors")
 def show_instructors_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
-  query_data = global_variables.USER_MANAGER.get_query_data(query.from_user.id, query.message.chat.id)
+  query_data = global_variables.CHAT_MANAGER.get_query_data(query.message.chat.id)
   text = ""
   if StudioType.Rev in query_data.studios:
     text += "*Rev Instructors:* " + ", ".join(global_variables.REV_INSTRUCTOR_NAMES) + "\n\n"
@@ -37,63 +37,63 @@ def show_instructors_callback_query_handler(query: telebot.types.CallbackQuery) 
     text += "*Anarchy Instructors:* " + ", ".join(global_variables.ANARCHY_INSTRUCTOR_NAMES) + "\n\n"
 
   sent_msg = global_variables.BOT.send_message(query.message.chat.id, text, parse_mode="Markdown")
-  instructors_selection_handler(query.from_user.id, query.message)
+  instructors_selection_handler(query.message)
 
 @global_variables.BOT.callback_query_handler(func=lambda query: eval(query.data)["step"] == "rev-instructors")
 def rev_instructors_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
   text = "Enter instructor names separated by a comma\ne.g.: *chloe*, *jerlyn*, *zai*\nEnter '*all*' to check for all instructors"
-  global_variables.USER_MANAGER.update_query_data_current_studio(query.from_user.id, query.message.chat.id, "Rev")
+  global_variables.CHAT_MANAGER.update_query_data_current_studio(query.message.chat.id, "Rev")
   sent_msg = global_variables.BOT.send_message(query.message.chat.id, text, parse_mode="Markdown")
-  global_variables.BOT.register_next_step_handler(sent_msg, instructors_input_handler, query.from_user.id, global_variables.REV_INSTRUCTORID_MAP)
+  global_variables.BOT.register_next_step_handler(sent_msg, instructors_input_handler, global_variables.REV_INSTRUCTORID_MAP)
 
 @global_variables.BOT.callback_query_handler(func=lambda query: eval(query.data)["step"] == "barrys-instructors")
 def barrys_instructors_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
   text = "Enter instructor names separated by a comma\ne.g.: *ria*, *gino*\nEnter '*all*' to check for all instructors"
-  global_variables.USER_MANAGER.update_query_data_current_studio(query.from_user.id, query.message.chat.id, "Barrys")
+  global_variables.CHAT_MANAGER.update_query_data_current_studio(query.message.chat.id, "Barrys")
   sent_msg = global_variables.BOT.send_message(query.message.chat.id, text, parse_mode="Markdown")
-  global_variables.BOT.register_next_step_handler(sent_msg, instructors_input_handler, query.from_user.id, global_variables.BARRYS_INSTRUCTORID_MAP)
+  global_variables.BOT.register_next_step_handler(sent_msg, instructors_input_handler, global_variables.BARRYS_INSTRUCTORID_MAP)
 
 @global_variables.BOT.callback_query_handler(func=lambda query: eval(query.data)["step"] == "absolute-spin-instructors")
 def absolute_spin_instructors_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
   text = "Enter instructor names separated by a comma\ne.g.: *chin*, *ria*\nEnter '*all*' to check for all instructors"
-  global_variables.USER_MANAGER.update_query_data_current_studio(query.from_user.id, query.message.chat.id, "Absolute (Spin)")
+  global_variables.CHAT_MANAGER.update_query_data_current_studio(query.message.chat.id, "Absolute (Spin)")
   sent_msg = global_variables.BOT.send_message(query.message.chat.id, text, parse_mode="Markdown")
-  global_variables.BOT.register_next_step_handler(sent_msg, instructors_input_handler, query.from_user.id, global_variables.ABSOLUTE_INSTRUCTORID_MAP)
+  global_variables.BOT.register_next_step_handler(sent_msg, instructors_input_handler, global_variables.ABSOLUTE_INSTRUCTORID_MAP)
 
 @global_variables.BOT.callback_query_handler(func=lambda query: eval(query.data)["step"] == "absolute-pilates-instructors")
 def absolute_pilates_instructors_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
   text = "Enter instructor names separated by a comma\ne.g.: *daniella*, *vnex*\nEnter '*all*' to check for all instructors"
-  global_variables.USER_MANAGER.update_query_data_current_studio(query.from_user.id, query.message.chat.id, "Absolute (Pilates)")
+  global_variables.CHAT_MANAGER.update_query_data_current_studio(query.message.chat.id, "Absolute (Pilates)")
   sent_msg = global_variables.BOT.send_message(query.message.chat.id, text, parse_mode="Markdown")
-  global_variables.BOT.register_next_step_handler(sent_msg, instructors_input_handler, query.from_user.id, global_variables.ABSOLUTE_INSTRUCTORID_MAP)
+  global_variables.BOT.register_next_step_handler(sent_msg, instructors_input_handler, global_variables.ABSOLUTE_INSTRUCTORID_MAP)
 
 @global_variables.BOT.callback_query_handler(func=lambda query: eval(query.data)["step"] == "ally-spin-instructors")
 def ally_spin_instructors_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
   text = "Enter instructor names separated by a comma\ne.g.: *samuel*, *jasper*\nEnter '*all*' to check for all instructors"
-  global_variables.USER_MANAGER.update_query_data_current_studio(query.from_user.id, query.message.chat.id, "Ally (Spin)")
+  global_variables.CHAT_MANAGER.update_query_data_current_studio(query.message.chat.id, "Ally (Spin)")
   sent_msg = global_variables.BOT.send_message(query.message.chat.id, text, parse_mode="Markdown")
-  global_variables.BOT.register_next_step_handler(sent_msg, instructors_input_handler, query.from_user.id, global_variables.ALLY_INSTRUCTORID_MAP)
+  global_variables.BOT.register_next_step_handler(sent_msg, instructors_input_handler, global_variables.ALLY_INSTRUCTORID_MAP)
 
 @global_variables.BOT.callback_query_handler(func=lambda query: eval(query.data)["step"] == "ally-pilates-instructors")
 def ally_pilates_instructors_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
   text = "Enter instructor names separated by a comma\ne.g.: *candice*, *ruth*\nEnter '*all*' to check for all instructors"
-  global_variables.USER_MANAGER.update_query_data_current_studio(query.from_user.id, query.message.chat.id, "Ally (Pilates)")
+  global_variables.CHAT_MANAGER.update_query_data_current_studio(query.message.chat.id, "Ally (Pilates)")
   sent_msg = global_variables.BOT.send_message(query.message.chat.id, text, parse_mode="Markdown")
-  global_variables.BOT.register_next_step_handler(sent_msg, instructors_input_handler, query.from_user.id, global_variables.ALLY_INSTRUCTORID_MAP)
+  global_variables.BOT.register_next_step_handler(sent_msg, instructors_input_handler, global_variables.ALLY_INSTRUCTORID_MAP)
 
 @global_variables.BOT.callback_query_handler(func=lambda query: eval(query.data)["step"] == "anarchy-instructors")
 def anarchy_instructors_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
   text = "Enter instructor names separated by a comma\ne.g.: *lyon*, *isabelle*\nEnter '*all*' to check for all instructors"
-  global_variables.USER_MANAGER.update_query_data_current_studio(query.from_user.id, query.message.chat.id, "Anarchy")
+  global_variables.CHAT_MANAGER.update_query_data_current_studio(query.message.chat.id, "Anarchy")
   sent_msg = global_variables.BOT.send_message(query.message.chat.id, text, parse_mode="Markdown")
-  global_variables.BOT.register_next_step_handler(sent_msg, instructors_input_handler, query.from_user.id, global_variables.ANARCHY_INSTRUCTORID_MAP)
+  global_variables.BOT.register_next_step_handler(sent_msg, instructors_input_handler, global_variables.ANARCHY_INSTRUCTORID_MAP)
 
-def instructors_input_handler(message: telebot.types.Message, user_id: int, instructorid_map: dict[str, int]) -> None:
-  query_data = global_variables.USER_MANAGER.get_query_data(user_id, message.chat.id)
+def instructors_input_handler(message: telebot.types.Message, instructorid_map: dict[str, int]) -> None:
+  query_data = global_variables.CHAT_MANAGER.get_query_data(message.chat.id)
   updated_instructors_list = [x.strip() for x in message.text.lower().split(",")]
   if "all" in updated_instructors_list:
     query_data.studios[query_data.current_studio].instructors = ["All"]
-    global_variables.USER_MANAGER.update_query_data_studios(user_id, message.chat.id, query_data.studios)
+    global_variables.CHAT_MANAGER.update_query_data_studios(message.chat.id, query_data.studios)
   else:
     invalid_instructors = []
     if "/" in updated_instructors_list: # Some names contain "/" which should not be considered as a valid name
@@ -112,21 +112,21 @@ def instructors_input_handler(message: telebot.types.Message, user_id: int, inst
         in updated_instructors_list
         if instructor not in invalid_instructors
       ]
-      global_variables.USER_MANAGER.update_query_data_studios(user_id, message.chat.id, query_data.studios)
+      global_variables.CHAT_MANAGER.update_query_data_studios(message.chat.id, query_data.studios)
       text = f"Failed to find instructor(s): {', '.join(invalid_instructors)}"
       sent_msg = global_variables.BOT.send_message(message.chat.id, text, parse_mode="Markdown")
 
     if len(updated_instructors_list) > 0:
       query_data.studios[query_data.current_studio].instructors = updated_instructors_list
 
-  instructors_selection_handler(user_id, message)
+  instructors_selection_handler(message)
 
-def instructors_selection_handler(user_id: int, message: telebot.types.Message) -> None:
-  query_data = global_variables.USER_MANAGER.get_query_data(user_id, message.chat.id)
+def instructors_selection_handler(message: telebot.types.Message) -> None:
+  query_data = global_variables.CHAT_MANAGER.get_query_data(message.chat.id)
   if len(query_data.studios) == 0:
     text = "No studio(s) selected. Please select the studio(s) first"
     sent_msg = global_variables.BOT.send_message(message.chat.id, text, parse_mode="Markdown")
-    main_page_handler(user_id, message)
+    main_page_handler(message)
     return
 
   text = "*Currently selected instructor(s)*\n"

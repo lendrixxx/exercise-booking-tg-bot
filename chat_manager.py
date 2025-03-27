@@ -100,31 +100,31 @@ class ButtonData:
     }
 
 
-class UserManager:
+class ChatManager:
   def __init__(self):
-    self.user_query_data = {}
-    self.user_button_data = {}
+    self.chat_query_data = {}
+    self.chat_button_data = {}
 
-  def reset_query_data(self, user_id, chat_id):
-    self.user_query_data[(user_id, chat_id)] = QueryData(studios={}, current_studio=StudioType.Null, weeks=1, days=SORTED_DAYS, start_times=[], class_name_filter="")
+  def reset_query_data(self, chat_id):
+    self.chat_query_data[chat_id] = QueryData(studios={}, current_studio=StudioType.Null, weeks=1, days=SORTED_DAYS, start_times=[], class_name_filter="")
 
-  def reset_button_data(self, user_id, chat_id):
-    self.user_button_data[(user_id, chat_id)] = ButtonData()
+  def reset_button_data(self, chat_id):
+    self.chat_button_data[chat_id] = ButtonData()
 
-  def reset_button_data_days_buttons_map(self, user_id, chat_id):
-    self.user_button_data[(user_id, chat_id)].reset_days_buttons_map()
+  def reset_button_data_days_buttons_map(self, chat_id):
+    self.chat_button_data[chat_id].reset_days_buttons_map()
 
-  def reset_button_data_studios_locations_buttons_map(self, user_id, chat_id):
-    self.user_button_data[(user_id, chat_id)].reset_studios_locations_buttons_map()
+  def reset_button_data_studios_locations_buttons_map(self, chat_id):
+    self.chat_button_data[chat_id].reset_studios_locations_buttons_map()
 
-  def update_query_data_current_studio(self, user_id, chat_id, current_studio):
-    self.user_query_data[(user_id, chat_id)].current_studio = current_studio
+  def update_query_data_current_studio(self, chat_id, current_studio):
+    self.chat_query_data[chat_id].current_studio = current_studio
 
-  def update_query_data_studios(self, user_id, chat_id, studios):
-    self.user_query_data[(user_id, chat_id)].studios = studios
+  def update_query_data_studios(self, chat_id, studios):
+    self.chat_query_data[chat_id].studios = studios
 
-  def update_query_data_select_all_studios(self, user_id, chat_id):
-    self.user_query_data[(user_id, chat_id)].studios = {
+  def update_query_data_select_all_studios(self, chat_id):
+    self.chat_query_data[chat_id].studios = {
       StudioType.Rev : StudioData(locations=STUDIO_LOCATIONS_MAP[StudioType.Rev]),
       StudioType.Barrys : StudioData(locations=STUDIO_LOCATIONS_MAP[StudioType.Barrys]),
       StudioType.AbsoluteSpin : StudioData(locations=STUDIO_LOCATIONS_MAP[StudioType.AbsoluteSpin]),
@@ -135,35 +135,35 @@ class UserManager:
       StudioType.Anarchy : StudioData(locations=STUDIO_LOCATIONS_MAP[StudioType.Anarchy]),
     }
 
-  def update_query_data_days(self, user_id, chat_id, days):
-    self.user_query_data[(user_id, chat_id)].days = days
+  def update_query_data_days(self, chat_id, days):
+    self.chat_query_data[chat_id].days = days
 
-  def update_query_data_weeks(self, user_id, chat_id, weeks):
-    self.user_query_data[(user_id, chat_id)].weeks = weeks
+  def update_query_data_weeks(self, chat_id, weeks):
+    self.chat_query_data[chat_id].weeks = weeks
 
-  def update_button_data_studios_selection_message(self, user_id, chat_id, studios_selection_message):
-    self.user_button_data[(user_id, chat_id)].studios_selection_message = studios_selection_message
+  def update_button_data_studios_selection_message(self, chat_id, studios_selection_message):
+    self.chat_button_data[chat_id].studios_selection_message = studios_selection_message
 
-  def update_button_data_locations_selection_message(self, user_id, chat_id, locations_selection_message):
-    self.user_button_data[(user_id, chat_id)].locations_selection_message = locations_selection_message
+  def update_button_data_locations_selection_message(self, chat_id, locations_selection_message):
+    self.chat_button_data[chat_id].locations_selection_message = locations_selection_message
 
-  def update_button_data_days_selection_message(self, user_id, chat_id, days_selection_message):
-    self.user_button_data[(user_id, chat_id)].days_selection_message = days_selection_message
+  def update_button_data_days_selection_message(self, chat_id, days_selection_message):
+    self.chat_button_data[chat_id].days_selection_message = days_selection_message
 
-  def update_button_data_select_all_studios_locations_buttons_map(self, user_id, chat_id):
-    self.user_button_data[(user_id, chat_id)].select_all_studios_locations_buttons_map()
+  def update_button_data_select_all_studios_locations_buttons_map(self, chat_id):
+    self.chat_button_data[chat_id].select_all_studios_locations_buttons_map()
 
-  def update_button_data_studios_buttons_map(self, user_id, chat_id, studios_buttons_map):
-    self.user_button_data[(user_id, chat_id)].studios_buttons_map = studios_buttons_map
+  def update_button_data_studios_buttons_map(self, chat_id, studios_buttons_map):
+    self.chat_button_data[chat_id].studios_buttons_map = studios_buttons_map
 
-  def update_button_data_studios_locations_buttons_map(self, user_id, chat_id, studios_locations_buttons_map):
-    self.user_button_data[(user_id, chat_id)].studios_locations_buttons_map = studios_locations_buttons_map
+  def update_button_data_studios_locations_buttons_map(self, chat_id, studios_locations_buttons_map):
+    self.chat_button_data[chat_id].studios_locations_buttons_map = studios_locations_buttons_map
 
-  def update_button_data_days_buttons_map(self, user_id, chat_id, days_buttons_map):
-    self.user_button_data[(user_id, chat_id)].days_buttons_map = days_buttons_map
+  def update_button_data_days_buttons_map(self, chat_id, days_buttons_map):
+    self.chat_button_data[chat_id].days_buttons_map = days_buttons_map
 
-  def get_query_data(self, user_id, chat_id):
-    return self.user_query_data[(user_id, chat_id)]
+  def get_query_data(self, chat_id):
+    return self.chat_query_data[chat_id]
 
-  def get_button_data(self, user_id, chat_id):
-    return self.user_button_data[(user_id, chat_id)]
+  def get_button_data(self, chat_id):
+    return self.chat_button_data[chat_id]

@@ -3,10 +3,10 @@ import telebot
 
 @global_variables.BOT.callback_query_handler(func=lambda query: eval(query.data)["step"] == "main-page-handler")
 def main_page_handler_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
-  main_page_handler(query.from_user.id, query.message)
+  main_page_handler(query.message)
 
-def main_page_handler(user_id: int, message: telebot.types.Message) -> None:
-  query_data = global_variables.USER_MANAGER.get_query_data(user_id, message.chat.id)
+def main_page_handler(message: telebot.types.Message) -> None:
+  query_data = global_variables.CHAT_MANAGER.get_query_data(message.chat.id)
   text = "*Schedule to check*\n"
   text += query_data.get_query_str(include_studio=True, include_instructors=True, include_weeks=True, include_days=True, include_time=True, include_class_name_filter=True)
 

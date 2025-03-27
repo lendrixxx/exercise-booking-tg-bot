@@ -1,9 +1,9 @@
 import logging
 import os
 import telebot
+from chat_manager import ChatManager
 from common.data_types import ResultData
 from history_handler import HistoryHandler
-from user_manager import UserManager
 
 # Global variables
 LOGGER = logging.getLogger(__name__)
@@ -19,7 +19,7 @@ NERD_COMMAND = telebot.types.BotCommand(command="nerd", description="Nerd mode")
 INSTRUCTORS_COMMAND = telebot.types.BotCommand(command="instructors", description="Show list of instructors")
 BOT.set_my_commands([START_COMMAND, NERD_COMMAND, INSTRUCTORS_COMMAND])
 
-USER_MANAGER = UserManager()
+CHAT_MANAGER = ChatManager()
 CACHED_RESULT_DATA = ResultData()
 ABSOLUTE_INSTRUCTORID_MAP = {}
 ABSOLUTE_INSTRUCTOR_NAMES = []

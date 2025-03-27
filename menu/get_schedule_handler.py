@@ -5,25 +5,25 @@ from menu.main_page_handler import main_page_handler
 
 @global_variables.BOT.callback_query_handler(func=lambda query: eval(query.data)["step"] == "get-schedule")
 def get_schedule_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
-  query_data = global_variables.USER_MANAGER.get_query_data(query.from_user.id, query.message.chat.id)
+  query_data = global_variables.CHAT_MANAGER.get_query_data(query.message.chat.id)
   if len(query_data.studios) == 0:
     text = "No studio(s) selected. Please select the studio(s) to get schedule for"
     sent_msg = global_variables.BOT.send_message(query.message.chat.id, text, parse_mode="Markdown")
-    main_page_handler(query.from_user.id, query.message)
+    main_page_handler(query.message)
     return
 
   if len(query_data.days) == 0:
     text = "No day(s) selected. Please select the day(s) to get schedule for"
     sent_msg = global_variables.BOT.send_message(query.message.chat.id, text, parse_mode="Markdown")
-    main_page_handler(query.from_user.id, query.message)
+    main_page_handler(query.message)
     return
 
   send_results(query)
 
 def send_results(query: telebot.types.CallbackQuery) -> None:
-  query_data = global_variables.USER_MANAGER.get_query_data(query.from_user.id, query.message.chat.id)
+  query_data = global_variables.CHAT_MANAGER.get_query_data(query.message.chat.id)
   result = global_variables.CACHED_RESULT_DATA.get_data(query_data)
-  global_variables.USER_MANAGER.reset_query_data(query.from_user.id, query.message.chat.id)
+  global_variables.CHAT_MANAGER.reset_query_data(query.message.chat.id)
 
   # Send string as messages
   schedule_str = result.get_result_str()
