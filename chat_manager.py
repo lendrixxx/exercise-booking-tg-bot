@@ -2,122 +2,21 @@ import global_variables
 from common.data_types import SORTED_DAYS, STUDIO_LOCATIONS_MAP, StudioData, StudioLocation, StudioType, QueryData
 from telebot.types import InlineKeyboardButton
 
-class ButtonData:
-  def __init__(self):
-    # Studios buttons
-    self.studios_selection_message = None
-    self.studios_select_all_button = InlineKeyboardButton("Select All", callback_data="{'studios': 'All', 'step': 'studios'}")
-    self.studios_unselect_all_button = InlineKeyboardButton("Unselect All", callback_data="{'studios': 'Null', 'step': 'studios'}")
-    self.studios_next_button = InlineKeyboardButton("Next ▶️", callback_data="{'step': 'main-page-handler'}")
-    self.studios_buttons_map = self.__get_default_studios_buttons_map()
-
-    # Locations buttons
-    self.locations_selection_message = None
-    self.locations_select_all_button = InlineKeyboardButton("Select All", callback_data="{'location': 'All', 'step': 'locations'}")
-    self.locations_unselect_all_button = InlineKeyboardButton("Unselect All", callback_data="{'location': 'Null', 'step': 'locations'}")
-    self.locations_select_more_studios_button = InlineKeyboardButton("◀️ Select More", callback_data="{'step': 'studios-selection'}")
-    self.locations_next_button = InlineKeyboardButton("Next ▶️", callback_data="{'step': 'main-page-handler'}")
-    self.studios_locations_buttons_map = self.__get_default_studios_locations_buttons_map()
-
-    # Days buttons
-    self.days_selection_message = None
-    self.days_select_all_button = InlineKeyboardButton("Select All", callback_data="{'days': 'All', 'step': 'days'}")
-    self.days_unselect_all_button = InlineKeyboardButton("Unselect All", callback_data="{'days': 'None', 'step': 'days'}")
-    self.days_next_button = InlineKeyboardButton("Next ▶️", callback_data="{'step': 'days-next'}")
-    self.days_buttons_map = self.__get_default_days_buttons_map()
-
-  def reset_studios_buttons_map(self):
-    self.studios_buttons_map = self.__get_default_studios_buttons_map()
-
-  def reset_studios_locations_buttons_map(self):
-    self.studios_locations_buttons_map = self.__get_default_studios_locations_buttons_map()
-
-  def reset_days_buttons_map(self):
-    self.days_buttons_map = self.__get_default_days_buttons_map()
-
-  def select_all_studios_locations_buttons_map(self):
-    self.studios_locations_buttons_map = self.__get_default_studios_locations_buttons_map(selected=True)
-
-  def __get_default_studios_buttons_map(self) -> dict[str, InlineKeyboardButton]:
-    return {
-      "Rev" : InlineKeyboardButton("Rev", callback_data="{'studios': 'Rev', 'step': 'studios'}"),
-      "Barrys" : InlineKeyboardButton("Barrys", callback_data="{'studios': 'Barrys', 'step': 'studios'}"),
-      "Absolute (Spin)" : InlineKeyboardButton("Absolute (Spin)", callback_data="{'studios': 'AbsoluteSpin', 'step': 'studios'}"),
-      "Absolute (Pilates)" : InlineKeyboardButton("Absolute (Pilates)", callback_data="{'studios': 'AbsolutePilates', 'step': 'studios'}"),
-      "Ally (Spin)" : InlineKeyboardButton("Ally (Spin)", callback_data="{'studios': 'AllySpin', 'step': 'studios'}"),
-      "Ally (Pilates)" : InlineKeyboardButton("Ally (Pilates)", callback_data="{'studios': 'AllyPilates', 'step': 'studios'}"),
-      "Ally (Recovery)" : InlineKeyboardButton("Ally (Recovery)", callback_data="{'studios': 'AllyRecovery', 'step': 'studios'}"),
-      "Anarchy" : InlineKeyboardButton("Anarchy", callback_data="{'studios': 'Anarchy', 'step': 'studios'}"),
-    }
-
-  def __get_default_studios_locations_buttons_map(self, selected: bool=False) -> dict[StudioType, dict[StudioLocation, InlineKeyboardButton]]:
-    return {
-      "Rev" : {
-        "Bugis" : InlineKeyboardButton("Bugis ✅" if selected else "Bugis", callback_data="{'location': 'Bugis', 'step': 'locations'}"),
-        "Orchard" : InlineKeyboardButton("Orchard ✅" if selected else "Orchard", callback_data="{'location': 'Orchard', 'step': 'locations'}"),
-        "TJPG" : InlineKeyboardButton("TJPG ✅" if selected else "TJPG", callback_data="{'location': 'TJPG', 'step': 'locations'}"),
-      },
-      "Barrys" : {
-        "Orchard" : InlineKeyboardButton("Orchard ✅" if selected else "Orchard", callback_data="{'location': 'Orchard', 'step': 'locations'}"),
-        "Raffles" : InlineKeyboardButton("Raffles ✅" if selected else "Raffles", callback_data="{'location': 'Raffles', 'step': 'locations'}"),
-      },
-      "Absolute (Spin)" : {
-        "Centrepoint" : InlineKeyboardButton("Centrepoint ✅" if selected else "Centrepoint", callback_data="{'location': 'Centrepoint', 'step': 'locations'}"),
-        "i12" : InlineKeyboardButton("i12 ✅" if selected else "i12", callback_data="{'location': 'i12', 'step': 'locations'}"),
-        "Star Vista" : InlineKeyboardButton("Star Vista ✅" if selected else "Star Vista", callback_data="{'location': 'StarVista', 'step': 'locations'}"),
-        "Raffles" : InlineKeyboardButton("Raffles ✅" if selected else "Raffles", callback_data="{'location': 'Raffles', 'step': 'locations'}"),
-        "Millenia Walk" : InlineKeyboardButton("Millenia Walk ✅" if selected else "Millenia Walk", callback_data="{'location': 'MilleniaWalk', 'step': 'locations'}"),
-      },
-      "Absolute (Pilates)" : {
-        "Centrepoint" : InlineKeyboardButton("Centrepoint ✅" if selected else "Centrepoint", callback_data="{'location': 'Centrepoint', 'step': 'locations'}"),
-        "i12" : InlineKeyboardButton("i12 ✅" if selected else "i12", callback_data="{'location': 'i12', 'step': 'locations'}"),
-        "Star Vista" : InlineKeyboardButton("Star Vista ✅" if selected else "Star Vista", callback_data="{'location': 'StarVista', 'step': 'locations'}"),
-        "Raffles" : InlineKeyboardButton("Raffles ✅" if selected else "Raffles", callback_data="{'location': 'Raffles', 'step': 'locations'}"),
-        "Great World" : InlineKeyboardButton("Great World ✅" if selected else "Great World", callback_data="{'location': 'GreatWorld', 'step': 'locations'}"),
-      },
-      "Ally (Spin)" : {
-        "Cross Street" : InlineKeyboardButton("Cross Street ✅" if selected else "Cross Street", callback_data="{'location': 'CrossStreet', 'step': 'locations'}"),
-      },
-      "Ally (Pilates)" : {
-        "Cross Street" : InlineKeyboardButton("Cross Street ✅" if selected else "Cross Street", callback_data="{'location': 'CrossStreet', 'step': 'locations'}"),
-      },
-      "Ally (Recovery)" : {
-        "Cross Street" : InlineKeyboardButton("Cross Street ✅" if selected else "Cross Street", callback_data="{'location': 'CrossStreet', 'step': 'locations'}"),
-      },
-      "Anarchy" : {
-        "Robinson" : InlineKeyboardButton("Robinson ✅" if selected else "Robinson", callback_data="{'location': 'Robinson', 'step': 'locations'}"),
-      },
-    }
-
-  def __get_default_days_buttons_map(self) -> dict[str, InlineKeyboardButton]:
-    return {
-      "Monday" : InlineKeyboardButton("Monday ✅", callback_data="{'days': 'Monday', 'step': 'days'}"),
-      "Tuesday" : InlineKeyboardButton("Tuesday ✅", callback_data="{'days': 'Tuesday', 'step': 'days'}"),
-      "Wednesday" : InlineKeyboardButton("Wednesday ✅", callback_data="{'days': 'Wednesday', 'step': 'days'}"),
-      "Thursday" : InlineKeyboardButton("Thursday ✅", callback_data="{'days': 'Thursday', 'step': 'days'}"),
-      "Friday" : InlineKeyboardButton("Friday ✅", callback_data="{'days': 'Friday', 'step': 'days'}"),
-      "Saturday" : InlineKeyboardButton("Saturday ✅", callback_data="{'days': 'Saturday', 'step': 'days'}"),
-      "Sunday" : InlineKeyboardButton("Sunday ✅", callback_data="{'days': 'Sunday', 'step': 'days'}"),
-    }
-
-
 class ChatManager:
+  class MessagesToEdit:
+    def __init__(self):
+      self.days_selection_message = None
+      self.studios_selection_message = None
+      self.locations_selection_message = None
+
   def __init__(self):
     self.chat_query_data = {}
-    self.chat_button_data = {}
     self.chat_message_ids_to_delete = {}
+    self.chat_messages_to_edit = {}
 
-  def reset_query_data(self, chat_id):
+  def reset_query_and_messages_to_edit_data(self, chat_id):
     self.chat_query_data[chat_id] = QueryData(studios={}, current_studio=StudioType.Null, weeks=1, days=SORTED_DAYS, start_times=[], class_name_filter="")
-
-  def reset_button_data(self, chat_id):
-    self.chat_button_data[chat_id] = ButtonData()
-
-  def reset_button_data_days_buttons_map(self, chat_id):
-    self.chat_button_data[chat_id].reset_days_buttons_map()
-
-  def reset_button_data_studios_locations_buttons_map(self, chat_id):
-    self.chat_button_data[chat_id].reset_studios_locations_buttons_map()
+    self.chat_messages_to_edit[chat_id] = ChatManager.MessagesToEdit()
 
   def update_query_data_current_studio(self, chat_id, current_studio):
     self.chat_query_data[chat_id].current_studio = current_studio
@@ -144,25 +43,13 @@ class ChatManager:
     self.chat_query_data[chat_id].weeks = weeks
 
   def update_button_data_studios_selection_message(self, chat_id, studios_selection_message):
-    self.chat_button_data[chat_id].studios_selection_message = studios_selection_message
+    self.chat_messages_to_edit[chat_id].studios_selection_message = studios_selection_message
 
   def update_button_data_locations_selection_message(self, chat_id, locations_selection_message):
-    self.chat_button_data[chat_id].locations_selection_message = locations_selection_message
+    self.chat_messages_to_edit[chat_id].locations_selection_message = locations_selection_message
 
   def update_button_data_days_selection_message(self, chat_id, days_selection_message):
-    self.chat_button_data[chat_id].days_selection_message = days_selection_message
-
-  def update_button_data_select_all_studios_locations_buttons_map(self, chat_id):
-    self.chat_button_data[chat_id].select_all_studios_locations_buttons_map()
-
-  def update_button_data_studios_buttons_map(self, chat_id, studios_buttons_map):
-    self.chat_button_data[chat_id].studios_buttons_map = studios_buttons_map
-
-  def update_button_data_studios_locations_buttons_map(self, chat_id, studios_locations_buttons_map):
-    self.chat_button_data[chat_id].studios_locations_buttons_map = studios_locations_buttons_map
-
-  def update_button_data_days_buttons_map(self, chat_id, days_buttons_map):
-    self.chat_button_data[chat_id].days_buttons_map = days_buttons_map
+    self.chat_messages_to_edit[chat_id].days_selection_message = days_selection_message
 
   def add_message_id_to_delete(self, chat_id, message_id):
     if chat_id in self.chat_message_ids_to_delete:
@@ -173,8 +60,14 @@ class ChatManager:
   def get_query_data(self, chat_id):
     return self.chat_query_data[chat_id]
 
-  def get_button_data(self, chat_id):
-    return self.chat_button_data[chat_id]
+  def get_days_selection_message(self, chat_id):
+    return self.chat_messages_to_edit[chat_id].days_selection_message
+
+  def get_studios_selection_message(self, chat_id):
+    return self.chat_messages_to_edit[chat_id].studios_selection_message
+
+  def get_locations_selection_message(self, chat_id):
+    return self.chat_messages_to_edit[chat_id].locations_selection_message
 
   def send_prompt(self, chat_id, text, reply_markup, delete_sent_msg_in_future):
     message_ids_to_delete = self.chat_message_ids_to_delete.pop(chat_id, None)

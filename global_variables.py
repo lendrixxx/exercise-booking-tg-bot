@@ -3,6 +3,7 @@ import os
 import telebot
 from chat_manager import ChatManager
 from common.data_types import ResultData
+from keyboard_manager import KeyboardManager
 from history_handler import HistoryHandler
 
 # Global variables
@@ -19,6 +20,7 @@ NERD_COMMAND = telebot.types.BotCommand(command="nerd", description="Nerd mode")
 INSTRUCTORS_COMMAND = telebot.types.BotCommand(command="instructors", description="Show list of instructors")
 BOT.set_my_commands([START_COMMAND, NERD_COMMAND, INSTRUCTORS_COMMAND])
 
+KEYBOARD_MANAGER = KeyboardManager()
 CHAT_MANAGER = ChatManager()
 CACHED_RESULT_DATA = ResultData()
 ABSOLUTE_INSTRUCTORID_MAP = {}

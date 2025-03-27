@@ -23,7 +23,7 @@ def get_schedule_callback_query_handler(query: telebot.types.CallbackQuery) -> N
 def send_results(query: telebot.types.CallbackQuery) -> None:
   query_data = global_variables.CHAT_MANAGER.get_query_data(query.message.chat.id)
   result = global_variables.CACHED_RESULT_DATA.get_data(query_data)
-  global_variables.CHAT_MANAGER.reset_query_data(query.message.chat.id)
+  global_variables.CHAT_MANAGER.reset_query_and_messages_to_edit_data(query.message.chat.id)
 
   # Send string as messages
   schedule_str = result.get_result_str()
