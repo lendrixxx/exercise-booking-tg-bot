@@ -75,7 +75,7 @@ class ClassData:
   def __init__(self, studio:StudioType, location:StudioLocation, name:str, instructor:str, time:str, availability:ClassAvailability, capacity_info:CapacityInfo):
     self.studio = studio
     self.location = location
-    self.name = name
+    self.name = name.replace("*", "\*").replace("_", "\_").replace("`", "\`")
     self.instructor = instructor
     self.time = time
     self.availability = availability
