@@ -1,12 +1,10 @@
-import global_variables
 import telebot
 
-@global_variables.BOT.callback_query_handler(func=lambda query: eval(query.data)["step"] == "main-page-handler")
-def main_page_handler_callback_query_handler(query: telebot.types.CallbackQuery) -> None:
-  main_page_handler(query.message)
+def main_page_handler_callback_query_handler(query: telebot.types.CallbackQuery, chat_manager: "ChatManager") -> None:
+  main_page_handler(query.message, chat_manager)
 
-def main_page_handler(message: telebot.types.Message) -> None:
-  query_data = global_variables.CHAT_MANAGER.get_query_data(message.chat.id)
+def main_page_handler(message: telebot.types.Message, chat_manager: "ChatManager") -> None:
+  query_data = chat_manager.get_query_data(message.chat.id)
   text = "*Schedule to check*\n"
   text += query_data.get_query_str(include_studio=True, include_instructors=True, include_weeks=True, include_days=True, include_time=True, include_class_name_filter=True)
 
@@ -24,4 +22,4 @@ def main_page_handler(message: telebot.types.Message) -> None:
   keyboard.add(time_button, class_name_button)
   keyboard.add(next_button)
 
-  global_variables.CHAT_MANAGER.send_prompt(chat_id=message.chat.id, text=text, reply_markup=keyboard, delete_sent_msg_in_future=True)
+  chat_manager.send_prompt(chat_id=message.chat.id, text=text, reply_markup=keyboard, delete_sent_msg_in_future=True)

@@ -64,7 +64,7 @@ RESPONSE_AVAILABILITY_MAP = {
 SORTED_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
 class CapacityInfo:
-  def __init__(self, has_info:bool=False, capacity:int=0, remaining:int=0, waitlist_capacity:int=0, waitlist_reserved:int=0):
+  def __init__(self, has_info:bool=False, capacity:int=0, remaining:int=0, waitlist_capacity:int=0, waitlist_reserved:int=0) -> None:
     self.has_info = has_info
     self.capacity = capacity
     self.remaining = remaining
@@ -72,7 +72,16 @@ class CapacityInfo:
     self.waitlist_reserved = waitlist_reserved
 
 class ClassData:
-  def __init__(self, studio:StudioType, location:StudioLocation, name:str, instructor:str, time:str, availability:ClassAvailability, capacity_info:CapacityInfo):
+  def __init__(
+    self,
+    studio:StudioType,
+    location:StudioLocation,
+    name:str,
+    instructor:str,
+    time:str,
+    availability:ClassAvailability,
+    capacity_info:CapacityInfo
+  ) -> None:
     self.studio = studio
     self.location = location
     self.name = name.replace("*", "\*").replace("_", "\_").replace("`", "\`")
@@ -91,13 +100,21 @@ class ClassData:
 
 
 class StudioData:
-  def __init__(self, locations: list[StudioLocation]=None, instructors: list[str]=None):
+  def __init__(self, locations: list[StudioLocation]=None, instructors: list[str]=None) -> None:
     self.locations = locations
     self.instructors = ["All"] if instructors is None else instructors
 
 
 class QueryData:
-  def __init__(self, studios: dict[StudioType, StudioData], current_studio: StudioType, weeks: int, days: list[str], start_times: list[tuple[datetime.date, datetime.date]], class_name_filter: str):
+  def __init__(
+    self,
+    studios: dict[StudioType, StudioData],
+    current_studio: StudioType,
+    weeks: int,
+    days: list[str],
+    start_times: list[tuple[datetime.date, datetime.date]],
+    class_name_filter: str
+  ) -> None:
     self.studios = {} if studios is None else copy(studios)
     self.current_studio = current_studio
     self.weeks = weeks
@@ -181,7 +198,7 @@ class QueryData:
 
 
 class ResultData:
-  def __init__(self, classes: dict[datetime.date, list[ClassData]]=None):
+  def __init__(self, classes: dict[datetime.date, list[ClassData]]=None) -> None:
     self.classes = {} if classes is None else classes
 
   def add_class(self, date: datetime.date, data: ClassData) -> None:

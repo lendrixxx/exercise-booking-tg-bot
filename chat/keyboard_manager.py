@@ -1,8 +1,8 @@
 import telebot
-from common.data_types import StudioLocation, StudioType, QueryData
+from common.data_types import StudioLocation, StudioType
 
 class KeyboardManager:
-  def __init__(self):
+  def __init__(self) -> None:
     # Studios buttons
     self.studios_select_all_button = telebot.types.InlineKeyboardButton("Select All", callback_data="{'studios': 'All', 'step': 'studios'}")
     self.studios_unselect_all_button = telebot.types.InlineKeyboardButton("Unselect All", callback_data="{'studios': 'Null', 'step': 'studios'}")
@@ -131,7 +131,7 @@ class KeyboardManager:
       "Sunday" : telebot.types.InlineKeyboardButton("Sunday ✅", callback_data="{'days': 'Sunday', 'step': 'days'}"),
     }
 
-  def get_studios_keyboard(self, query: QueryData):
+  def get_studios_keyboard(self, query: "QueryData") -> telebot.types.InlineKeyboardMarkup:
     studios_keyboard = telebot.types.InlineKeyboardMarkup()
 
     studio_buttons = {
@@ -157,7 +157,7 @@ class KeyboardManager:
     studios_keyboard.add(self.studios_next_button)
     return studios_keyboard
 
-  def get_locations_keyboard(self, query: QueryData):
+  def get_locations_keyboard(self, query: "QueryData") -> telebot.types.InlineKeyboardMarkup:
     locations_keyboard = telebot.types.InlineKeyboardMarkup()
     studio_locations_buttons = {
       StudioType.Rev : {
@@ -208,7 +208,7 @@ class KeyboardManager:
     locations_keyboard.add(self.locations_select_more_studios_button, self.locations_next_button)
     return locations_keyboard
 
-  def get_days_keyboard(self, query: QueryData):
+  def get_days_keyboard(self, query: "QueryData") -> telebot.types.InlineKeyboardMarkup:
     days_keyboard = telebot.types.InlineKeyboardMarkup()
 
     days_buttons = {
