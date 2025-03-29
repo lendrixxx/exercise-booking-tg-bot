@@ -108,7 +108,7 @@ class App:
       time.sleep(1)
 
   def start_bot_polling(self) -> None:
-    self.bot.infinity_polling()
+    self.bot.infinity_polling(allowed_updates=['message', 'callback_query'])
 
   def shutdown(self, signum, frame) -> None:
     self.logger.info("Received termination signal. Stopping bot and background threads...")
