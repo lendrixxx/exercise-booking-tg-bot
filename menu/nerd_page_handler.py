@@ -124,7 +124,7 @@ def nerd_input_handler(
         chat_manager.send_prompt(chat_id=message.chat.id, text=text, reply_markup=None, delete_sent_msg_in_future=False)
 
       if len(selected_instructors) == 0:
-        text = f"Failed to handle query. No instructor selected for {current_studio}"
+        text = f"Failed to handle query. No instructor selected for {current_studio.value}"
         chat_manager.send_prompt(chat_id=message.chat.id, text=text, reply_markup=None, delete_sent_msg_in_future=False)
         return
 
