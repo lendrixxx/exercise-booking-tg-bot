@@ -4,6 +4,7 @@ import telebot
 import threading
 import time
 import schedule
+import signal
 from chat.chat_manager import ChatManager
 from chat.keyboard_manager import KeyboardManager
 from common.data_types import ResultData
@@ -46,6 +47,9 @@ class App:
     self.history_manager = HistoryManager(self.logger)
     self.server = Server(self.logger)
     self.menu_manager = MenuManager(self.logger, self.bot, self.chat_manager, self.keyboard_manager, self.studios_manager, self.history_manager)
+    self.bot_polling_thread = None
+    self.server_thread = None
+    self.update_schedule_thread = None
 
   def update_cached_result_data(self) -> None:
     def _get_absolute_schedule(self, mutex: threading.Lock, updated_cached_result_data: ResultData) -> None:
@@ -85,7 +89,7 @@ class App:
       (_get_barrys_schedule, "barrys_thread"),
       (_get_rev_schedule, "rev_thread")
     ]:
-      thread = threading.Thread(target=func, name=name, args=(self, mutex, updated_cached_result_data,))
+      thread = threading.Thread(target=func, name=name, args=[self, mutex, updated_cached_result_data], daemon=True)
       threads.append(thread)
       thread.start()
 
@@ -106,6 +110,20 @@ class App:
   def start_bot_polling(self) -> None:
     self.bot.infinity_polling()
 
+  def shutdown(self, signum, frame) -> None:
+    self.logger.info("Received termination signal. Stopping bot and background threads...")
+    self.bot.stop_polling()
+
+    # Signal threads to stop
+    self.stop_event.set()
+
+    # Wait for non-daemon threads to stop
+    # Thread could be null if shutdown signal was received before thread was created
+    if self.bot_polling_thread is not None:
+      self.bot_polling_thread.join()
+
+    self.logger.info("Successfully exited")
+
   def run(self) -> None:
     # Load existing history
     self.history_manager.start()
@@ -113,27 +131,27 @@ class App:
     # Create threads
     self.stop_event = threading.Event()
 
-    # Thread for scheduled updates and server pings
-    self.update_schedule_thread = threading.Thread(target=self.schedule_update_cached_result_data, args=[self.stop_event])
-    self.update_schedule_thread.start()
+    # Register signal handlers
+    signal.signal(signal.SIGTERM, self.shutdown)
+    signal.signal(signal.SIGINT, self.shutdown)
 
-    # Start the Flask app in a separate thread
-    self.flask_thread = threading.Thread(target=self.server.start_server)
-    self.flask_thread.daemon = True  # This allows the thread to exit when the main program ends
-    self.flask_thread.start()
+    # Start the server in a separate thread
+    self.server_thread = threading.Thread(target=self.server.start_server, daemon=True)
+    self.server_thread.start()
+
+    # Start updating cached result data periodically in a separate thread
+    self.update_schedule_thread = threading.Thread(target=self.schedule_update_cached_result_data, args=[self.stop_event], daemon=True)
+    self.update_schedule_thread.start()
 
     # Get current schedule and store in cache
     self.logger.info("Starting bot...")
     self.update_cached_result_data()
-    self.logger.info("Bot started!")
 
     # Start bot polling in a separate thread
-    self.bot_polling_thread = threading.Thread(target=self.start_bot_polling, daemon=True)
+    self.bot_polling_thread = threading.Thread(target=self.start_bot_polling)
     self.bot_polling_thread.start()
+    self.logger.info("Bot started!")
 
-    # Wait for bot to handle messages
-    self.bot_polling_thread.join()
-
-    # Stop threads
-    self.stop_event.set()
-    self.update_schedule_thread.join()
+    # Keep the main thread alive
+    while not self.stop_event.is_set():
+      time.sleep(1)
